@@ -1,0 +1,19 @@
+{
+  "name": "@foodpilot/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "start": "expo start"
+  },
+  "dependencies": {
+    "@foodpilot/domain": "0.1.0",
+    "expo": "^54.0.21",
+    "expo-status-bar": "^56.0.4",
+    "react": "^19.1.0",
+    "react-native": "^0.81.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2"
+  }
+}

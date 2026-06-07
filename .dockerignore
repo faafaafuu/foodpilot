@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.next
+.expo
+graphify-out
+.git
+.env
+

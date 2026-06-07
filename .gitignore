@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.next/
+.expo/
+.turbo/
+graphify-out/
+.env
+*.log
+prisma/dev.db
+

@@ -1,0 +1,47 @@
+{
+  "name": "foodpilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FoodPilot monorepo for nutrition planning, calorie tracking, groceries, carts, and AI-assisted meal prep.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:api": "npm run start:dev --workspace @foodpilot/api",
+    "dev:web": "npm run dev --workspace @foodpilot/web",
+    "dev:mobile": "npm run start --workspace @foodpilot/mobile",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://foodpilot:foodpilot@localhost:15432/foodpilot?schema=public} prisma validate",
+    "test": "jest --runInBand"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "prettier": "^3.6.2",
+    "prisma": "^6.19.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4"
+  }
+}

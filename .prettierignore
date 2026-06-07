@@ -1,0 +1,8 @@
+apps/web/next-env.d.ts
+node_modules/
+dist/
+coverage/
+.next/
+.expo/
+graphify-out/
+

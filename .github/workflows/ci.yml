@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: foodpilot
+          POSTGRES_PASSWORD: foodpilot
+          POSTGRES_DB: foodpilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U foodpilot -d foodpilot"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://foodpilot:foodpilot@localhost:5432/foodpilot?schema=public
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run prisma:migrate
+      - run: npm run prisma:validate
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
