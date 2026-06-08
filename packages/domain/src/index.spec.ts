@@ -1,4 +1,4 @@
-import { defaultFoodPilotContext, shouldExcludeIngredient } from './index';
+import { defaultFoodPilotContext, shouldExcludeIngredient, starterDishes } from './index';
 
 describe('FoodPilot domain defaults', () => {
   it('captures the first MVP taste context', () => {
@@ -13,5 +13,20 @@ describe('FoodPilot domain defaults', () => {
   it('detects disliked ingredients by normalized name', () => {
     expect(shouldExcludeIngredient('Куриные яйца', ['яйца'])).toBe(true);
     expect(shouldExcludeIngredient('Капуста белокочанная', ['яйца'])).toBe(false);
+  });
+
+  it('contains the first test dish set without disliked ingredients', () => {
+    expect(starterDishes).toHaveLength(10);
+    expect(starterDishes.map((dish) => dish.name)).toEqual(
+      expect.arrayContaining(['Ленивые голубцы', 'Холодный свекольник', 'Окрошка без яиц']),
+    );
+
+    const allRecipeIngredientNames = starterDishes.flatMap((dish) =>
+      dish.recipe.ingredients.map((ingredient) => ingredient.normalizedName),
+    );
+
+    expect(allRecipeIngredientNames.some((name) => shouldExcludeIngredient(name, ['яйца']))).toBe(
+      false,
+    );
   });
 });

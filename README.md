@@ -25,6 +25,7 @@ npm install
 npm run prisma:generate
 docker compose up -d postgres redis
 npm run prisma:migrate
+npm run prisma:seed
 npm run dev:api
 ```
 
@@ -61,6 +62,22 @@ npm run build
 npm run prisma:validate
 ```
 
+## Seed Data
+
+Stage 2 includes idempotent development seed data:
+
+- demo user profile with weight-loss goal and 1800 kcal daily limit;
+- taste memory for lazy cabbage rolls, cold beet soup, simple home meal prep, and disliked eggs/porridge/avocado;
+- 10 starter dishes with ingredients and short recipes;
+- mock store with matching products;
+- demo grocery list and cart marked `READY_FOR_CONFIRMATION`.
+
+Run it after migrations:
+
+```bash
+npm run prisma:seed
+```
+
 ## Docker Compose
 
 ```bash
@@ -75,8 +92,8 @@ Services:
 
 ## MVP Roadmap
 
-1. Architecture project setup.
-2. Data model for users, profiles, dishes, recipes, meal logs, grocery lists, stores, and carts.
+1. Architecture project setup. Done in `a70dfa5`.
+2. Data model for users, profiles, dishes, recipes, meal logs, grocery lists, stores, and carts. Done.
 3. Profile and taste APIs.
 4. Calorie tracker.
 5. Dish and recipe base.

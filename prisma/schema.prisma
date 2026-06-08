@@ -14,3 +14,332 @@ model AppMetadata {
   updatedAt DateTime @updatedAt
 }
 
+enum DietGoal {
+  WEIGHT_LOSS
+  MAINTENANCE
+  MUSCLE_GAIN
+}
+
+enum FoodPreferenceType {
+  FAVORITE_DISH
+  DISLIKED_PRODUCT
+  HARD_RESTRICTION
+  SUCCESSFUL_RECOMMENDATION
+  FAILED_RECOMMENDATION
+  MEAL_STYLE
+  PREFERRED_STORE
+}
+
+enum BudgetTier {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum GroceryCategory {
+  MEAT
+  VEGETABLES
+  DAIRY
+  GRAINS
+  PANTRY
+  DRINKS
+  OTHER
+}
+
+enum MeasurementUnit {
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  PIECE
+  CAN
+  PACK
+  BUNCH
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum GroceryListStatus {
+  DRAFT
+  READY
+  ORDER_PREPARED
+  ARCHIVED
+}
+
+enum CartStatus {
+  DRAFT
+  READY_FOR_CONFIRMATION
+  CONFIRMED
+  ABANDONED
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String?       @unique
+  displayName  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  profile      UserProfile?
+  preferences  FoodPreference[]
+  mealLogs     MealLog[]
+  calorieGoals CalorieGoal[]
+  groceryLists GroceryList[]
+  carts        Cart[]
+}
+
+model UserProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  weightKg           Decimal? @db.Decimal(6, 2)
+  heightCm           Int?
+  age                Int?
+  goal               DietGoal @default(WEIGHT_LOSS)
+  dailyCalorieLimit  Int?
+  desiredMealsPerDay Int      @default(3)
+  weeklyBudgetCents  Int?
+  deliveryCity       String?
+  preferredStores    String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FoodPreference {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @db.Uuid
+  type            FoodPreferenceType
+  value           String
+  notes           String?
+  weight          Int                @default(1)
+  repeatFrequency Int?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, value])
+  @@index([userId, type])
+}
+
+model Dish {
+  id                 String       @id @default(uuid()) @db.Uuid
+  slug               String       @unique
+  name               String       @unique
+  description        String?
+  mealPrepFriendly   Boolean      @default(false)
+  budgetTier         BudgetTier   @default(NORMAL)
+  servings           Int          @default(1)
+  caloriesPerServing Int
+  proteinGrams       Decimal?     @db.Decimal(6, 2)
+  fatGrams           Decimal?     @db.Decimal(6, 2)
+  carbGrams          Decimal?     @db.Decimal(6, 2)
+  tags               String[]     @default([])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  recipe             Recipe?
+  mealLogs           MealLog[]
+}
+
+model Ingredient {
+  id              String             @id @default(uuid()) @db.Uuid
+  name            String
+  normalizedName  String             @unique
+  category        GroceryCategory    @default(OTHER)
+  defaultUnit     MeasurementUnit    @default(GRAM)
+  caloriesPer100g Int?
+  proteinPer100g  Decimal?           @db.Decimal(6, 2)
+  fatPer100g      Decimal?           @db.Decimal(6, 2)
+  carbPer100g     Decimal?           @db.Decimal(6, 2)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  recipeItems     RecipeIngredient[]
+  groceryItems    GroceryListItem[]
+  storeProducts   StoreProduct[]
+
+  @@index([category])
+}
+
+model Recipe {
+  id           String             @id @default(uuid()) @db.Uuid
+  dishId       String             @unique @db.Uuid
+  summary      String
+  instructions String[]
+  prepMinutes  Int?
+  cookMinutes  Int?
+  servings     Int
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  dish         Dish               @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  ingredients  RecipeIngredient[]
+}
+
+model RecipeIngredient {
+  id           String          @id @default(uuid()) @db.Uuid
+  recipeId     String          @db.Uuid
+  ingredientId String          @db.Uuid
+  quantity     Decimal         @db.Decimal(10, 2)
+  unit         MeasurementUnit
+  note         String?
+  sortOrder    Int             @default(0)
+  recipe       Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@unique([recipeId, ingredientId, note])
+  @@index([ingredientId])
+}
+
+model MealLog {
+  id           String          @id @default(uuid()) @db.Uuid
+  userId       String          @db.Uuid
+  dishId       String?         @db.Uuid
+  name         String
+  mealType     MealType?
+  loggedAt     DateTime        @default(now())
+  servings     Decimal         @default(1) @db.Decimal(6, 2)
+  calories     Int
+  proteinGrams Decimal?        @db.Decimal(6, 2)
+  fatGrams     Decimal?        @db.Decimal(6, 2)
+  carbGrams    Decimal?        @db.Decimal(6, 2)
+  notes        String?
+  createdAt    DateTime        @default(now())
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dish         Dish?           @relation(fields: [dishId], references: [id], onDelete: SetNull)
+
+  @@index([userId, loggedAt])
+  @@index([dishId])
+}
+
+model CalorieGoal {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @db.Uuid
+  goal                DietGoal @default(WEIGHT_LOSS)
+  dailyCalories       Int
+  proteinGrams        Int?
+  fatGrams            Int?
+  carbGrams           Int?
+  effectiveFrom       DateTime @default(now())
+  createdAt           DateTime @default(now())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, effectiveFrom])
+}
+
+model GroceryList {
+  id                  String              @id @default(uuid()) @db.Uuid
+  userId              String?             @db.Uuid
+  title               String
+  status              GroceryListStatus   @default(DRAFT)
+  sourceMenuJson      Json?
+  totalEstimatedCents Int?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items               GroceryListItem[]
+  carts               Cart[]
+
+  @@index([userId, status])
+}
+
+model GroceryListItem {
+  id              String           @id @default(uuid()) @db.Uuid
+  groceryListId   String           @db.Uuid
+  ingredientId    String?          @db.Uuid
+  name            String
+  category        GroceryCategory  @default(OTHER)
+  quantity        Decimal          @db.Decimal(10, 2)
+  unit            MeasurementUnit
+  packageQuantity Decimal?         @db.Decimal(10, 2)
+  packageUnit     MeasurementUnit?
+  checked         Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  groceryList     GroceryList      @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
+  ingredient      Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  cartItems       CartItem[]
+
+  @@index([groceryListId])
+  @@index([ingredientId])
+}
+
+model Store {
+  id         String         @id @default(uuid()) @db.Uuid
+  code       String         @unique
+  name       String         @unique
+  adapterKey String
+  city       String?
+  isMock     Boolean        @default(false)
+  active     Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  products   StoreProduct[]
+  carts      Cart[]
+}
+
+model StoreProduct {
+  id             String          @id @default(uuid()) @db.Uuid
+  storeId        String          @db.Uuid
+  ingredientId   String?         @db.Uuid
+  externalId     String?
+  name           String
+  normalizedName String
+  category       GroceryCategory @default(OTHER)
+  priceCents     Int
+  packageSize    Decimal         @db.Decimal(10, 2)
+  packageUnit    MeasurementUnit
+  available      Boolean         @default(true)
+  qualityTier    BudgetTier      @default(NORMAL)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  ingredient     Ingredient?     @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  cartItems      CartItem[]
+
+  @@unique([storeId, externalId])
+  @@index([storeId, normalizedName])
+  @@index([ingredientId])
+}
+
+model Cart {
+  id                   String       @id @default(uuid()) @db.Uuid
+  userId               String?      @db.Uuid
+  storeId              String       @db.Uuid
+  groceryListId        String?      @db.Uuid
+  status               CartStatus   @default(DRAFT)
+  subtotalCents        Int          @default(0)
+  currency             String       @default("RUB")
+  requiresConfirmation Boolean      @default(true)
+  confirmedAt          DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  user                 User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  store                Store        @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  groceryList          GroceryList? @relation(fields: [groceryListId], references: [id], onDelete: SetNull)
+  items                CartItem[]
+
+  @@index([userId, status])
+  @@index([storeId])
+  @@index([groceryListId])
+}
+
+model CartItem {
+  id                   String           @id @default(uuid()) @db.Uuid
+  cartId               String           @db.Uuid
+  groceryListItemId    String?          @db.Uuid
+  storeProductId       String?          @db.Uuid
+  name                 String
+  quantity             Int              @default(1)
+  unitPriceCents       Int
+  totalPriceCents      Int
+  replacementForName   String?
+  replacementReason    String?
+  createdAt            DateTime         @default(now())
+  cart                 Cart             @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  groceryListItem      GroceryListItem? @relation(fields: [groceryListItemId], references: [id], onDelete: SetNull)
+  storeProduct         StoreProduct?    @relation(fields: [storeProductId], references: [id], onDelete: SetNull)
+
+  @@index([cartId])
+  @@index([storeProductId])
+}

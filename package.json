@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
+    "prisma:seed": "tsx prisma/seed.ts",
     "prisma:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://foodpilot:foodpilot@localhost:15432/foodpilot?schema=public} prisma validate",
     "test": "jest --runInBand"
   },

@@ -11,6 +11,7 @@ FoodPilot is a TypeScript monorepo split by runtime and bounded context.
 ## Shared Packages
 
 - `packages/domain`: cross-platform domain types and pure rules that are safe to reuse in API, web, and mobile.
+- `packages/domain/src/starter-data.ts`: development fixtures for the first MVP taste context and starter dish catalog.
 
 Future packages should be added when their boundaries become real:
 
@@ -27,6 +28,18 @@ Future packages should be added when their boundaries become real:
 - Auth is designed for JWT access tokens and refresh tokens, with future alternative login methods.
 - User dislikes and hard food restrictions must be enforced before meal recommendations are returned.
 - Browser sessions for store adapters must be local, encrypted or protected by OS/user permissions, and excluded from logs.
+
+## Data Model
+
+Stage 2 establishes the persistent core:
+
+- user identity, profile, calorie goals, and taste memory;
+- dish, ingredient, recipe, and recipe ingredient catalog;
+- meal logs for calorie tracking;
+- grocery lists and grocery list items;
+- store catalog, store products, carts, and cart items.
+
+Cart rows include `requiresConfirmation` and `READY_FOR_CONFIRMATION` state so future store integrations can prepare carts without placing orders.
 
 ## Graphify Workflow
 

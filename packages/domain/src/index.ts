@@ -26,3 +26,5 @@ export function shouldExcludeIngredient(
     normalizedIngredient.includes(product.trim().toLocaleLowerCase('ru-RU')),
   );
 }
+
+export * from './starter-data';
