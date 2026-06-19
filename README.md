@@ -67,6 +67,14 @@ Available profile routes:
 - `POST /profiles/:userId/favorite-dishes`
 - `POST /profiles/:userId/disliked-products`
 
+Calorie API:
+
+- `POST /calories/:userId/goals`
+- `POST /calories/:userId/meals`
+- `POST /calories/:userId/products`
+- `GET /calories/:userId/today`
+- `GET /calories/:userId/daily-summary?date=YYYY-MM-DD`
+
 Web:
 
 ```bash
@@ -121,7 +129,7 @@ Services:
 1. Architecture project setup. Done in `a70dfa5`.
 2. Data model for users, profiles, dishes, recipes, meal logs, grocery lists, stores, and carts. Done.
 3. Profile and taste APIs. Done.
-4. Calorie tracker.
+4. Calorie tracker. Done.
 5. Dish and recipe base.
 6. Meal recommendation engine.
 7. Grocery list builder.

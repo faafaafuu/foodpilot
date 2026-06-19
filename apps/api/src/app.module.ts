@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CaloriesModule } from './calories/calories.module';
 import { HealthModule } from './health/health.module';
 import { ProfilesModule } from './profiles/profiles.module';
 
@@ -11,6 +12,7 @@ import { ProfilesModule } from './profiles/profiles.module';
     }),
     HealthModule,
     ProfilesModule,
+    CaloriesModule,
   ],
 })
 export class AppModule {}
