@@ -7,5 +7,6 @@ import { CaloriesService } from './calories.service';
   imports: [PrismaModule],
   controllers: [CaloriesController],
   providers: [CaloriesService],
+  exports: [CaloriesService],
 })
 export class CaloriesModule {}

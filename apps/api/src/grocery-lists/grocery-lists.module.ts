@@ -7,5 +7,6 @@ import { GroceryListsService } from './grocery-lists.service';
   imports: [PrismaModule],
   controllers: [GroceryListsController],
   providers: [GroceryListsService],
+  exports: [GroceryListsService],
 })
 export class GroceryListsModule {}

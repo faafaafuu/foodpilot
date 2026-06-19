@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiModule } from './ai/ai.module';
 import { ConfigModule } from '@nestjs/config';
 import { CaloriesModule } from './calories/calories.module';
 import { CartBuilderModule } from './cart-builder/cart-builder.module';
@@ -23,6 +24,7 @@ import { StoreAdaptersModule } from './store-adapters/store-adapters.module';
     GroceryListsModule,
     StoreAdaptersModule,
     CartBuilderModule,
+    AiModule,
   ],
 })
 export class AppModule {}

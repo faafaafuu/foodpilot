@@ -107,6 +107,10 @@ Cart Builder API:
 - `POST /cart-builder/grocery-lists/:groceryListId/cart`
 - `GET /cart-builder/carts/:cartId`
 
+AI Assistant API:
+
+- `POST /ai/:userId/messages`
+
 Web:
 
 ```bash
@@ -167,7 +171,7 @@ Services:
 7. Grocery list builder. Done.
 8. Store adapter layer. Done.
 9. Cart builder with user confirmation before ordering. Done.
-10. AI layer through a replaceable adapter.
+10. AI layer through a replaceable adapter. Done.
 11. Mobile MVP screens.
 12. Web MVP dashboard and debug panel.
 13. Security pass.

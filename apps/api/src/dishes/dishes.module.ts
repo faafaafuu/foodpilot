@@ -7,5 +7,6 @@ import { DishesService } from './dishes.service';
   imports: [PrismaModule],
   controllers: [DishesController],
   providers: [DishesService],
+  exports: [DishesService],
 })
 export class DishesModule {}
