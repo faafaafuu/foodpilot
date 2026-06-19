@@ -93,6 +93,15 @@ Grocery List API:
 - `GET /grocery-lists/:listId`
 - `GET /grocery-lists/:listId/export`
 
+Mock Store Adapter API:
+
+- `GET /store-adapters/mock/search?query=фарш`
+- `GET /store-adapters/mock/products/:productId`
+- `GET /store-adapters/mock/products/:productId/availability`
+- `POST /store-adapters/mock/cart/items`
+- `GET /store-adapters/mock/cart/:cartId`
+- `POST /store-adapters/mock/cart/:cartId/replace`
+
 Web:
 
 ```bash
@@ -151,7 +160,7 @@ Services:
 5. Dish and recipe base. Done.
 6. Meal recommendation engine. Done.
 7. Grocery list builder. Done.
-8. Store adapter layer.
+8. Store adapter layer. Done.
 9. Cart builder with user confirmation before ordering.
 10. AI layer through a replaceable adapter.
 11. Mobile MVP screens.
