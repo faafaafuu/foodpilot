@@ -87,6 +87,12 @@ Recommendation API:
 - `GET /recommendations/:userId/dishes?remainingCalories=1200&limit=5`
 - `GET /recommendations/:userId/week?days=7`
 
+Grocery List API:
+
+- `POST /grocery-lists/:userId/from-menu`
+- `GET /grocery-lists/:listId`
+- `GET /grocery-lists/:listId/export`
+
 Web:
 
 ```bash
@@ -144,7 +150,7 @@ Services:
 4. Calorie tracker. Done.
 5. Dish and recipe base. Done.
 6. Meal recommendation engine. Done.
-7. Grocery list builder.
+7. Grocery list builder. Done.
 8. Store adapter layer.
 9. Cart builder with user confirmation before ordering.
 10. AI layer through a replaceable adapter.
