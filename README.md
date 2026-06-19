@@ -173,7 +173,7 @@ Services:
 9. Cart builder with user confirmation before ordering. Done.
 10. AI layer through a replaceable adapter. Done.
 11. Mobile MVP screens. Done.
-12. Web MVP dashboard and debug panel.
+12. Web MVP dashboard and debug panel. Done.
 13. Security pass.
 14. Performance pass.
 15. Final self-review.
