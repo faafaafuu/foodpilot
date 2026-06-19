@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CaloriesModule } from './calories/calories.module';
+import { CartBuilderModule } from './cart-builder/cart-builder.module';
 import { DishesModule } from './dishes/dishes.module';
 import { GroceryListsModule } from './grocery-lists/grocery-lists.module';
 import { HealthModule } from './health/health.module';
@@ -21,6 +22,7 @@ import { StoreAdaptersModule } from './store-adapters/store-adapters.module';
     RecommendationsModule,
     GroceryListsModule,
     StoreAdaptersModule,
+    CartBuilderModule,
   ],
 })
 export class AppModule {}

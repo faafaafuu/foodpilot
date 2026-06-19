@@ -102,6 +102,11 @@ Mock Store Adapter API:
 - `GET /store-adapters/mock/cart/:cartId`
 - `POST /store-adapters/mock/cart/:cartId/replace`
 
+Cart Builder API:
+
+- `POST /cart-builder/grocery-lists/:groceryListId/cart`
+- `GET /cart-builder/carts/:cartId`
+
 Web:
 
 ```bash
@@ -161,7 +166,7 @@ Services:
 6. Meal recommendation engine. Done.
 7. Grocery list builder. Done.
 8. Store adapter layer. Done.
-9. Cart builder with user confirmation before ordering.
+9. Cart builder with user confirmation before ordering. Done.
 10. AI layer through a replaceable adapter.
 11. Mobile MVP screens.
 12. Web MVP dashboard and debug panel.
