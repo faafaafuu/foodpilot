@@ -75,6 +75,13 @@ Calorie API:
 - `GET /calories/:userId/today`
 - `GET /calories/:userId/daily-summary?date=YYYY-MM-DD`
 
+Dish API:
+
+- `GET /dishes`
+- `GET /dishes/:slug`
+- `GET /dishes/:slug/recipe`
+- `GET /dishes/:slug/ingredients`
+
 Web:
 
 ```bash
@@ -130,7 +137,7 @@ Services:
 2. Data model for users, profiles, dishes, recipes, meal logs, grocery lists, stores, and carts. Done.
 3. Profile and taste APIs. Done.
 4. Calorie tracker. Done.
-5. Dish and recipe base.
+5. Dish and recipe base. Done.
 6. Meal recommendation engine.
 7. Grocery list builder.
 8. Store adapter layer.
