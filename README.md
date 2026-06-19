@@ -41,6 +41,32 @@ Swagger/OpenAPI:
 http://localhost:3001/docs
 ```
 
+Profile API:
+
+```bash
+curl -X POST http://localhost:3001/profiles \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "demo@foodpilot.local",
+    "weightKg": 92,
+    "heightCm": 178,
+    "age": 34,
+    "goal": "WEIGHT_LOSS",
+    "dailyCalorieLimit": 1800,
+    "favoriteDishes": ["ленивые голубцы", "холодный свекольник"],
+    "dislikedProducts": ["яйца", "каши", "авокадо"]
+  }'
+```
+
+Available profile routes:
+
+- `POST /profiles`
+- `GET /profiles/:userId`
+- `PATCH /profiles/:userId`
+- `GET /profiles/:userId/tastes`
+- `POST /profiles/:userId/favorite-dishes`
+- `POST /profiles/:userId/disliked-products`
+
 Web:
 
 ```bash
@@ -94,7 +120,7 @@ Services:
 
 1. Architecture project setup. Done in `a70dfa5`.
 2. Data model for users, profiles, dishes, recipes, meal logs, grocery lists, stores, and carts. Done.
-3. Profile and taste APIs.
+3. Profile and taste APIs. Done.
 4. Calorie tracker.
 5. Dish and recipe base.
 6. Meal recommendation engine.

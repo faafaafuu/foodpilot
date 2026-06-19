@@ -4,7 +4,7 @@ FoodPilot is a TypeScript monorepo split by runtime and bounded context.
 
 ## Runtime Apps
 
-- `apps/api`: NestJS backend. Owns REST/OpenAPI, validation, auth, persistence, background-job orchestration, and adapter coordination.
+- `apps/api`: NestJS backend on Fastify. Owns REST/OpenAPI, validation, auth, persistence, background-job orchestration, and adapter coordination.
 - `apps/mobile`: React Native + Expo client for the first mobile MVP.
 - `apps/web`: Next.js dashboard and future admin/debug panel.
 
