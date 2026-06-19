@@ -175,7 +175,7 @@ Services:
 11. Mobile MVP screens. Done.
 12. Web MVP dashboard and debug panel. Done.
 13. Security pass. Done.
-14. Performance pass.
+14. Performance pass. Done.
 15. Final self-review.
 
 ## Safety Rules

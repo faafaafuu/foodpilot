@@ -100,6 +100,21 @@ describe('RecommendationsService', () => {
     expect(response.groceryCandidateDishSlugs).toContain('lazy-cabbage-rolls');
     expect(response.estimatedAverageCalories).toBeGreaterThan(0);
   });
+
+  it('caches repeated dish recommendation requests', async () => {
+    const prisma = createPrismaMock({
+      preferences: [preference('MEAL_STYLE', 'готовка на несколько дней')],
+      dishes: [
+        dish({ slug: 'lazy-cabbage-rolls', name: 'Ленивые голубцы', caloriesPerServing: 430 }),
+      ],
+    });
+    const service = new RecommendationsService(prisma as unknown as PrismaService);
+
+    await service.recommendDishes('user-1', { remainingCalories: 1200, limit: 3 });
+    await service.recommendDishes('user-1', { remainingCalories: 1200, limit: 3 });
+
+    expect(prisma.dish.findMany).toHaveBeenCalledTimes(1);
+  });
 });
 
 function createPrismaMock(options: {

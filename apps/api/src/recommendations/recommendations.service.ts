@@ -55,12 +55,28 @@ interface ScoredDish {
 
 @Injectable()
 export class RecommendationsService {
+  private readonly cacheTtlMs = Number(process.env.RECOMMENDATION_CACHE_TTL_MS ?? 300_000);
+  private readonly dishCache = new Map<
+    string,
+    { expiresAt: number; value: DishRecommendationsResponse }
+  >();
+  private readonly weeklyCache = new Map<
+    string,
+    { expiresAt: number; value: WeeklyMenuResponse }
+  >();
+
   constructor(private readonly prisma: PrismaService) {}
 
   async recommendDishes(
     userId: string,
     options: { remainingCalories?: number; limit?: number; date?: string } = {},
   ): Promise<DishRecommendationsResponse> {
+    const cacheKey = cacheKeyFor('dishes', userId, options);
+    const cached = this.getCached(this.dishCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const [user, dishes, dailyContext] = await Promise.all([
       this.getUser(userId),
       this.getDishes(),
@@ -73,7 +89,7 @@ export class RecommendationsService {
       options.limit,
     );
 
-    return {
+    const response = {
       userId,
       date: dailyContext.date,
       dailyLimit: dailyContext.dailyLimit,
@@ -81,12 +97,22 @@ export class RecommendationsService {
       remainingCalories: dailyContext.remainingCalories,
       recommendations: recommendations.map((item) => item.recommendation),
     };
+
+    this.setCached(this.dishCache, cacheKey, response);
+
+    return response;
   }
 
   async recommendWeeklyMenu(
     userId: string,
     options: { days?: number; date?: string } = {},
   ): Promise<WeeklyMenuResponse> {
+    const cacheKey = cacheKeyFor('week', userId, options);
+    const cached = this.getCached(this.weeklyCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const [user, dishes, dailyContext] = await Promise.all([
       this.getUser(userId),
       this.getDishes(),
@@ -131,12 +157,16 @@ export class RecommendationsService {
       menuDays.reduce((sum, day) => sum + day.estimatedCalories, 0) / menuDays.length,
     );
 
-    return {
+    const response = {
       userId,
       days: menuDays,
       estimatedAverageCalories,
       groceryCandidateDishSlugs,
     };
+
+    this.setCached(this.weeklyCache, cacheKey, response);
+
+    return response;
   }
 
   private async getUser(userId: string): Promise<UserWithContext> {
@@ -158,6 +188,27 @@ export class RecommendationsService {
     }
 
     return user;
+  }
+
+  private getCached<T>(cache: Map<string, { expiresAt: number; value: T }>, key: string): T | null {
+    const item = cache.get(key);
+    if (!item) {
+      return null;
+    }
+
+    if (item.expiresAt <= Date.now()) {
+      cache.delete(key);
+      return null;
+    }
+
+    return item.value;
+  }
+
+  private setCached<T>(cache: Map<string, { expiresAt: number; value: T }>, key: string, value: T) {
+    cache.set(key, {
+      expiresAt: Date.now() + this.cacheTtlMs,
+      value,
+    });
   }
 
   private getDishes(): Promise<DishWithRecipe[]> {
@@ -353,6 +404,21 @@ export class RecommendationsService {
       warnings,
     };
   }
+}
+
+function cacheKeyFor(
+  scope: string,
+  userId: string,
+  options: { remainingCalories?: number; limit?: number; date?: string; days?: number },
+): string {
+  return JSON.stringify({
+    scope,
+    userId,
+    remainingCalories: options.remainingCalories ?? null,
+    limit: options.limit ?? null,
+    date: options.date ?? null,
+    days: options.days ?? null,
+  });
 }
 
 function preferenceValues(preferences: FoodPreference[], types: FoodPreferenceType[]): string[] {
