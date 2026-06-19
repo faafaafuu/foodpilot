@@ -82,6 +82,11 @@ Dish API:
 - `GET /dishes/:slug/recipe`
 - `GET /dishes/:slug/ingredients`
 
+Recommendation API:
+
+- `GET /recommendations/:userId/dishes?remainingCalories=1200&limit=5`
+- `GET /recommendations/:userId/week?days=7`
+
 Web:
 
 ```bash
@@ -138,7 +143,7 @@ Services:
 3. Profile and taste APIs. Done.
 4. Calorie tracker. Done.
 5. Dish and recipe base. Done.
-6. Meal recommendation engine.
+6. Meal recommendation engine. Done.
 7. Grocery list builder.
 8. Store adapter layer.
 9. Cart builder with user confirmation before ordering.
