@@ -2,13 +2,16 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { BrowserStoreAutomationPolicyService } from './browser-store-automation-policy.service';
+import { BrowserStoreSessionService } from './browser-store-session.service';
 import { CreateBrowserAutomationPlanDto } from './dto/create-browser-automation-plan.dto';
+import { StartBrowserStoreSessionDto } from './dto/start-browser-store-session.dto';
 import { PageStoreAdapter } from './page-store.adapter';
 import { ReplaceProductDto } from './dto/replace-product.dto';
 import { MockStoreAdapter } from './mock-store.adapter';
 import {
   BrowserStoreAutomationPlanResponse,
   BrowserStoreAutomationStatusResponse,
+  BrowserStoreSessionResponse,
   ParsedStoreSearchResponse,
   StoreAvailabilityResponse,
   StoreCartResponse,
@@ -77,7 +80,10 @@ export class PageStoreAdaptersController {
 @ApiTags('store-adapters')
 @Controller('store-adapters/browser-session')
 export class BrowserSessionStoreAdaptersController {
-  constructor(private readonly policyService: BrowserStoreAutomationPolicyService) {}
+  constructor(
+    private readonly policyService: BrowserStoreAutomationPolicyService,
+    private readonly sessionService: BrowserStoreSessionService,
+  ) {}
 
   @Get('status')
   @ApiOkResponse({ description: 'Browser-session store automation capabilities and limits.' })
@@ -93,5 +99,29 @@ export class BrowserSessionStoreAdaptersController {
     @Body() dto: CreateBrowserAutomationPlanDto,
   ): BrowserStoreAutomationPlanResponse {
     return this.policyService.createPlan(dto);
+  }
+
+  @Get('sessions')
+  @ApiOkResponse({ description: 'Active browser store sessions for this API process.' })
+  listSessions(): BrowserStoreSessionResponse[] {
+    return this.sessionService.listSessions();
+  }
+
+  @Post('sessions')
+  @ApiCreatedResponse({ description: 'Open a provider login page in a local browser profile.' })
+  startSession(@Body() dto: StartBrowserStoreSessionDto): Promise<BrowserStoreSessionResponse> {
+    return this.sessionService.startSession(dto);
+  }
+
+  @Get('sessions/:sessionId')
+  @ApiOkResponse({ description: 'Browser store session status.' })
+  getSession(@Param('sessionId') sessionId: string): BrowserStoreSessionResponse {
+    return this.sessionService.getSession(sessionId);
+  }
+
+  @Post('sessions/:sessionId/close')
+  @ApiOkResponse({ description: 'Close a browser store session.' })
+  closeSession(@Param('sessionId') sessionId: string): Promise<BrowserStoreSessionResponse> {
+    return this.sessionService.closeSession(sessionId);
   }
 }

@@ -5,7 +5,7 @@ coverage/
 .expo/
 .turbo/
 graphify-out/
+.foodpilot/
 .env
 *.log
 prisma/dev.db
-

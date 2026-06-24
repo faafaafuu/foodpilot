@@ -110,6 +110,10 @@ Browser Session Store Automation API:
 
 - `GET /store-adapters/browser-session/status`
 - `POST /store-adapters/browser-session/automation-plan`
+- `GET /store-adapters/browser-session/sessions`
+- `POST /store-adapters/browser-session/sessions`
+- `GET /store-adapters/browser-session/sessions/:sessionId`
+- `POST /store-adapters/browser-session/sessions/:sessionId/close`
 
 This is the path for stores that require a real user session, including Yandex Eda, Yandex Go, Pyaterochka, and Magnit. The intended implementation is a Playwright-controlled local browser profile where the user signs in directly with the provider once. FoodPilot may then search products and assemble the provider cart in that user-owned session.
 
@@ -119,6 +123,20 @@ Hard limits:
 - FoodPilot must not bypass captcha, 3DS, SMS, or bank challenges.
 - External order submission requires fresh confirmation for that exact cart.
 - Automatic payment capture is blocked; payment remains inside the provider or bank flow.
+
+Browser sessions use local profiles under `FOODPILOT_BROWSER_SESSION_DIR` (default `.foodpilot/browser-sessions`, ignored by git). Install the Chromium runtime before using this flow:
+
+```bash
+npx playwright install chromium
+```
+
+Open a provider login session:
+
+```bash
+curl -X POST http://localhost:3001/store-adapters/browser-session/sessions \
+  -H 'Content-Type: application/json' \
+  -d '{ "provider": "yandex-eda", "headless": false }'
+```
 
 Real Store Redirect API:
 

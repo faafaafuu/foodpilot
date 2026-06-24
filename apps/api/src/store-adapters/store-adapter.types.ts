@@ -95,6 +95,32 @@ export interface BrowserStoreAutomationPlanResponse {
   warnings: string[];
 }
 
+export type BrowserStoreSessionStatus =
+  | 'OPENING'
+  | 'AWAITING_PROVIDER_LOGIN'
+  | 'READY_FOR_CART_AUTOMATION'
+  | 'CLOSED'
+  | 'FAILED';
+
+export interface BrowserStoreSessionResponse {
+  id: string;
+  provider: BrowserStoreAutomationProvider;
+  displayName: string;
+  status: BrowserStoreSessionStatus;
+  loginUrl: string;
+  profilePath: string;
+  headless: boolean;
+  createdAt: string;
+  openedAt: string | null;
+  closedAt: string | null;
+  currentUrl: string | null;
+  canSearch: boolean;
+  canAssembleCart: boolean;
+  canSubmitOrder: boolean;
+  canPay: boolean;
+  warnings: string[];
+}
+
 export interface StoreAvailabilityResponse {
   productId: string;
   available: boolean;
