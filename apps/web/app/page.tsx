@@ -71,6 +71,25 @@ type AiResponse = {
   actions: string[];
 };
 
+type ExternalStoreStatusResponse = {
+  provider: 'instacart';
+  configured: boolean;
+  mode: 'development' | 'production';
+  baseUrl: string;
+  capabilities: string[];
+  requiredEnv: string[];
+  checkoutBehavior: string;
+};
+
+type InstacartShoppingListLinkResponse = {
+  provider: 'instacart';
+  groceryListId: string;
+  title: string;
+  productsLinkUrl: string;
+  lineItemCount: number;
+  checkoutBehavior: string;
+};
+
 type MenuCartResponse = {
   groceryList: GroceryListResponse;
   cart: CartResponse;
@@ -141,39 +160,16 @@ const quickMessages = [
   'Дай короткий рецепт ленивых голубцов',
 ];
 
-const integrations: Array<{
-  name: string;
-  state: IntegrationState;
-  detail: string;
-}> = [
-  {
-    name: 'Mock Store',
-    state: 'ready',
-    detail: 'Рабочая сборка корзины и замены товаров',
-  },
-  {
-    name: 'Лента / Ozon Fresh / Перекрёсток',
-    state: 'blocked',
-    detail: 'Нужны аккаунт, сессия или официальный API-доступ',
-  },
-  {
-    name: 'Оплата',
-    state: 'mock',
-    detail: 'MockPaymentAdapter; реальные деньги только через PCI-провайдера',
-  },
-  {
-    name: 'AI',
-    state: 'mock',
-    detail: 'LocalAiAdapter; внешний LLM подключается через adapter',
-  },
-];
-
 export default function HomePage() {
   const [apiBase, setApiBase] = useState(defaultApiBase());
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [groceryList, setGroceryList] = useState<GroceryListResponse | null>(null);
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntentResponse | null>(null);
+  const [instacartStatus, setInstacartStatus] = useState<ExternalStoreStatusResponse | null>(null);
+  const [instacartLink, setInstacartLink] = useState<InstacartShoppingListLinkResponse | null>(
+    null,
+  );
   const [chatInput, setChatInput] = useState(quickMessages[0]);
   const [chat, setChat] = useState<ChatMessage[]>([
     {
@@ -202,6 +198,33 @@ export default function HomePage() {
     { label: 'Подтверждение', done: cartConfirmed },
     { label: 'Оплата', done: captured },
   ];
+  const integrations = useMemo(
+    () => [
+      {
+        name: 'Mock Store',
+        state: 'ready' as const,
+        detail: 'Рабочая сборка корзины и замены товаров',
+      },
+      {
+        name: 'Instacart',
+        state: (instacartStatus?.configured ? 'ready' : 'blocked') as IntegrationState,
+        detail: instacartStatus?.configured
+          ? `API настроен: ${instacartStatus.mode}, checkout через внешнюю ссылку`
+          : 'Нужен INSTACART_API_KEY; после этого FoodPilot создаёт реальную shopping-list checkout ссылку',
+      },
+      {
+        name: 'Оплата',
+        state: 'mock' as const,
+        detail: 'MockPaymentAdapter; реальные деньги только через PCI-провайдера',
+      },
+      {
+        name: 'AI',
+        state: 'mock' as const,
+        detail: 'LocalAiAdapter; внешний LLM подключается через adapter',
+      },
+    ],
+    [instacartStatus],
+  );
 
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const headers = {
@@ -290,6 +313,7 @@ export default function HomePage() {
       setGroceryList(response.groceryList);
       setCart(response.cart);
       setPaymentIntent(null);
+      setInstacartLink(null);
     }
 
     return response?.cart ?? null;
@@ -356,6 +380,48 @@ export default function HomePage() {
 
     if (capturedIntent) {
       setPaymentIntent(capturedIntent);
+    }
+  }
+
+  async function checkInstacartStatus(): Promise<void> {
+    const statusResponse = await runAction('Проверяю Instacart API', () =>
+      apiFetch<ExternalStoreStatusResponse>('/external-stores/instacart/status'),
+    );
+
+    if (statusResponse) {
+      setInstacartStatus(statusResponse);
+    }
+  }
+
+  async function createInstacartLink(): Promise<void> {
+    if (!groceryList) {
+      setStatus('Сначала собери список покупок');
+      return;
+    }
+
+    const link = await runAction('Создаю Instacart checkout link', () =>
+      apiFetch<InstacartShoppingListLinkResponse>(
+        `/external-stores/instacart/grocery-lists/${groceryList.id}/link`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            expiresInDays: 30,
+            partnerLinkbackUrl: window.location.href,
+            title: 'FoodPilot weekly groceries',
+          }),
+        },
+      ),
+    );
+
+    if (link) {
+      setInstacartLink(link);
+      setChat((messages) => [
+        ...messages,
+        {
+          role: 'assistant',
+          text: `Готова реальная Instacart-ссылка на ${link.lineItemCount} позиций. Открой её и заверши заказ на стороне Instacart.`,
+        },
+      ]);
     }
   }
 
@@ -639,6 +705,16 @@ export default function HomePage() {
           ) : (
             <p className="emptyText">Оплата появится после подтверждения корзины.</p>
           )}
+          {instacartLink ? (
+            <a
+              className="checkoutLink"
+              href={instacartLink.productsLinkUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Открыть Instacart checkout
+            </a>
+          ) : null}
         </article>
 
         <article className="panel chatPanel">
@@ -707,6 +783,37 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <div className="integrationActions">
+            <button
+              disabled={Boolean(busyAction)}
+              type="button"
+              onClick={() => void checkInstacartStatus()}
+            >
+              Проверить Instacart
+            </button>
+            <button
+              disabled={Boolean(busyAction) || !groceryList}
+              type="button"
+              onClick={() => void createInstacartLink()}
+            >
+              Создать Instacart checkout link
+            </button>
+          </div>
+          {instacartLink ? (
+            <a
+              className="checkoutLink"
+              href={instacartLink.productsLinkUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Перейти к заказу в Instacart
+            </a>
+          ) : (
+            <p className="integrationHint">
+              Для реального checkout задай `INSTACART_API_KEY` в env API-процесса и перезапусти
+              backend.
+            </p>
+          )}
         </article>
 
         <article className="panel debugPanel">

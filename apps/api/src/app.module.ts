@@ -5,6 +5,7 @@ import { CaloriesModule } from './calories/calories.module';
 import { CartBuilderModule } from './cart-builder/cart-builder.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { DishesModule } from './dishes/dishes.module';
+import { ExternalStoresModule } from './external-stores/external-stores.module';
 import { GroceryListsModule } from './grocery-lists/grocery-lists.module';
 import { HealthModule } from './health/health.module';
 import { ProfilesModule } from './profiles/profiles.module';
@@ -26,6 +27,7 @@ import { StoreAdaptersModule } from './store-adapters/store-adapters.module';
     StoreAdaptersModule,
     CartBuilderModule,
     CheckoutModule,
+    ExternalStoresModule,
     AiModule,
   ],
 })

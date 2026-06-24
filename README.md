@@ -100,6 +100,14 @@ Mock Store Adapter API:
 - `GET /store-adapters/mock/cart/:cartId`
 - `POST /store-adapters/mock/cart/:cartId/replace`
 
+Real Store Redirect API:
+
+- `GET /external-stores/instacart/status`
+- `GET /external-stores/instacart/retailers?postalCode=10001&countryCode=US`
+- `POST /external-stores/instacart/grocery-lists/:groceryListId/link`
+
+Instacart uses the official Instacart Developer Platform and returns a shopping-list checkout link. FoodPilot sends the grocery-list items, then the user chooses the retailer, reviews substitutions, delivery, and payment inside Instacart. Configure it with `INSTACART_API_KEY`; `INSTACART_API_BASE_URL` defaults to `https://connect.dev.instacart.tools`.
+
 Cart Builder API:
 
 - `POST /cart-builder/menu/cart`
@@ -147,7 +155,7 @@ Web:
 npm run dev:web
 ```
 
-The web dashboard is an interactive cockpit. It can create the demo profile, build a mock-store cart from selected dishes, confirm the cart, create and capture a mock payment intent, chat with the local AI adapter, and use browser voice input where supported.
+The web dashboard is an interactive cockpit. It can create the demo profile, build a mock-store cart from selected dishes, confirm the cart, create and capture a mock payment intent, create an Instacart checkout link when API credentials are configured, chat with the local AI adapter, and use browser voice input where supported.
 
 Mobile:
 
@@ -212,6 +220,7 @@ Services:
 16. One-shot menu-to-cart preparation endpoint. Done.
 17. Checkout and mock payment intent flow. Done.
 18. Interactive web cockpit with cart, checkout, chat, and browser voice input. Done.
+19. Real external grocery checkout redirect through Instacart Developer Platform. Done.
 
 ## Safety Rules
 
