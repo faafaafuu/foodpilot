@@ -81,6 +81,8 @@ type ChatMessage = {
   text: string;
 };
 
+type IntegrationState = 'ready' | 'mock' | 'blocked';
+
 type SpeechRecognitionResultLike = {
   0: {
     transcript: string;
@@ -139,6 +141,33 @@ const quickMessages = [
   'Дай короткий рецепт ленивых голубцов',
 ];
 
+const integrations: Array<{
+  name: string;
+  state: IntegrationState;
+  detail: string;
+}> = [
+  {
+    name: 'Mock Store',
+    state: 'ready',
+    detail: 'Рабочая сборка корзины и замены товаров',
+  },
+  {
+    name: 'Лента / Ozon Fresh / Перекрёсток',
+    state: 'blocked',
+    detail: 'Нужны аккаунт, сессия или официальный API-доступ',
+  },
+  {
+    name: 'Оплата',
+    state: 'mock',
+    detail: 'MockPaymentAdapter; реальные деньги только через PCI-провайдера',
+  },
+  {
+    name: 'AI',
+    state: 'mock',
+    detail: 'LocalAiAdapter; внешний LLM подключается через adapter',
+  },
+];
+
 export default function HomePage() {
   const [apiBase, setApiBase] = useState(defaultApiBase());
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -167,6 +196,12 @@ export default function HomePage() {
   const cartConfirmed = cart?.status === 'CONFIRMED';
   const canPay = cartConfirmed && !paymentIntent;
   const captured = paymentIntent?.status === 'CAPTURED';
+  const workflowSteps = [
+    { label: 'Профиль', done: Boolean(profile) },
+    { label: 'Корзина', done: Boolean(cart) },
+    { label: 'Подтверждение', done: cartConfirmed },
+    { label: 'Оплата', done: captured },
+  ];
 
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const headers = {
@@ -417,7 +452,7 @@ export default function HomePage() {
       <header className="topbar">
         <div>
           <p className="eyebrow">FoodPilot</p>
-          <h1>Рабочий cockpit питания и корзины</h1>
+          <h1>Питание, покупки и checkout</h1>
         </div>
         <label className="apiControl">
           API
@@ -427,10 +462,10 @@ export default function HomePage() {
 
       <section className="heroBand">
         <div>
-          <h2>Первый сценарий</h2>
+          <h2>Сценарий meal-prep на неделю</h2>
           <p>
-            Профиль, меню, продукты, mock-корзина, подтверждение и mock-оплата. Реальный заказ в
-            магазин пока не отправляется.
+            Собираем меню из простых блюд, превращаем его в продукты, подбираем товары и проводим
+            checkout. Реальные магазины и платежи включаются только после подключения credentials.
           </p>
         </div>
         <button disabled={Boolean(busyAction)} type="button" onClick={() => void runFullFlow()}>
@@ -438,10 +473,22 @@ export default function HomePage() {
         </button>
       </section>
 
+      <section className="statusStrip" aria-label="Статусы сценария">
+        {workflowSteps.map((step, index) => (
+          <div className={`stepPill ${step.done ? 'done' : ''}`} key={step.label}>
+            <span>{index + 1}</span>
+            <strong>{step.label}</strong>
+          </div>
+        ))}
+      </section>
+
       <section className="grid">
         <article className="panel profilePanel">
           <div className="panelHeader">
-            <h2>Профиль</h2>
+            <div>
+              <p className="sectionLabel">User Profile</p>
+              <h2>Профиль</h2>
+            </div>
             <StatusDot active={Boolean(profile)} />
           </div>
           <Metric label="Пользователь" value={profile?.user.email ?? 'не создан'} />
@@ -454,7 +501,12 @@ export default function HomePage() {
         </article>
 
         <article className="panel caloriesPanel">
-          <h2>Блюда</h2>
+          <div className="panelHeader">
+            <div>
+              <p className="sectionLabel">Menu</p>
+              <h2>Блюда</h2>
+            </div>
+          </div>
           <div className="dishPicker">
             {starterDishes.map((dish) => (
               <label key={dish.slug}>
@@ -471,7 +523,10 @@ export default function HomePage() {
 
         <article className="panel cartPanel">
           <div className="panelHeader">
-            <h2>Workflow</h2>
+            <div>
+              <p className="sectionLabel">Actions</p>
+              <h2>Workflow</h2>
+            </div>
             <span className="stateText">{status}</span>
           </div>
           <div className="buttonStack">
@@ -503,7 +558,15 @@ export default function HomePage() {
         </article>
 
         <article className="panel menuPanel">
-          <h2>Список покупок</h2>
+          <div className="panelHeader">
+            <div>
+              <p className="sectionLabel">Grocery List</p>
+              <h2>Список покупок</h2>
+            </div>
+            <span className="amountBadge">
+              {groceryList?.totalEstimatedCents ? money(groceryList.totalEstimatedCents) : '-'}
+            </span>
+          </div>
           {groceryList ? (
             <div className="table">
               {groceryList.items.map((item) => (
@@ -526,7 +589,13 @@ export default function HomePage() {
         </article>
 
         <article className="panel groceryPanel">
-          <h2>Корзина</h2>
+          <div className="panelHeader">
+            <div>
+              <p className="sectionLabel">Cart</p>
+              <h2>Корзина</h2>
+            </div>
+            <StatusBadge value={cart?.status ?? 'EMPTY'} />
+          </div>
           {cart ? (
             <>
               <Metric label="Статус" value={cart.status} />
@@ -551,7 +620,13 @@ export default function HomePage() {
         </article>
 
         <article className="panel recipePanel">
-          <h2>Checkout</h2>
+          <div className="panelHeader">
+            <div>
+              <p className="sectionLabel">Payment</p>
+              <h2>Checkout</h2>
+            </div>
+            <StatusBadge value={paymentIntent?.status ?? 'NOT_CREATED'} />
+          </div>
           <Metric label="Корзина" value={cart?.status ?? 'нет'} />
           <Metric label="Оплата" value={paymentIntent?.status ?? 'нет'} />
           <Metric label="Сумма" value={paymentIntent ? money(paymentIntent.amountCents) : '-'} />
@@ -568,7 +643,10 @@ export default function HomePage() {
 
         <article className="panel chatPanel">
           <div className="panelHeader">
-            <h2>AI чат</h2>
+            <div>
+              <p className="sectionLabel">Assistant</p>
+              <h2>AI чат</h2>
+            </div>
             <button
               className="smallButton"
               disabled={voiceActive || Boolean(busyAction)}
@@ -609,8 +687,35 @@ export default function HomePage() {
           </form>
         </article>
 
+        <article className="panel integrationsPanel">
+          <div className="panelHeader">
+            <div>
+              <p className="sectionLabel">Production</p>
+              <h2>Реальные интеграции</h2>
+            </div>
+          </div>
+          <div className="integrationList">
+            {integrations.map((integration) => (
+              <div className="integrationItem" key={integration.name}>
+                <div>
+                  <strong>{integration.name}</strong>
+                  <p>{integration.detail}</p>
+                </div>
+                <span className={`integrationBadge ${integration.state}`}>
+                  {integrationLabel(integration.state)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </article>
+
         <article className="panel debugPanel">
-          <h2>Debug</h2>
+          <div className="panelHeader">
+            <div>
+              <p className="sectionLabel">Runtime</p>
+              <h2>Debug</h2>
+            </div>
+          </div>
           <Metric label="API" value={apiBase} />
           <Metric label="User ID" value={profile?.user.id ?? '-'} />
           <Metric label="Grocery list" value={groceryList?.id ?? '-'} />
@@ -624,6 +729,10 @@ export default function HomePage() {
 
 function StatusDot({ active }: { active: boolean }) {
   return <span className={`statusDot ${active ? 'active' : ''}`} />;
+}
+
+function StatusBadge({ value }: { value: string }) {
+  return <span className={`statusBadge ${statusClass(value)}`}>{statusLabel(value)}</span>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -681,6 +790,43 @@ function unitLabel(unit: string): string {
   };
 
   return labels[unit] ?? unit;
+}
+
+function statusClass(value: string): string {
+  if (value === 'CAPTURED' || value === 'CONFIRMED') {
+    return 'success';
+  }
+
+  if (value === 'READY_FOR_CONFIRMATION' || value === 'REQUIRES_CONFIRMATION') {
+    return 'warning';
+  }
+
+  return 'neutral';
+}
+
+function statusLabel(value: string): string {
+  const labels: Record<string, string> = {
+    CAPTURED: 'оплачено',
+    CONFIRMED: 'подтверждено',
+    EMPTY: 'пусто',
+    NOT_CREATED: 'нет',
+    READY_FOR_CONFIRMATION: 'нужно подтвердить',
+    REQUIRES_CONFIRMATION: 'нужно подтвердить',
+  };
+
+  return labels[value] ?? value;
+}
+
+function integrationLabel(state: IntegrationState): string {
+  if (state === 'ready') {
+    return 'готово';
+  }
+
+  if (state === 'mock') {
+    return 'mock';
+  }
+
+  return 'нужны ключи';
 }
 
 function shortenError(message: string): string {

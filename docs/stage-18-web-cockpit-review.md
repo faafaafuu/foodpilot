@@ -14,6 +14,8 @@ This step turns the web dashboard from a static MVP view into a working browser 
 - chat with the local AI adapter;
 - use browser speech recognition for voice input when supported;
 - speak AI replies through browser speech synthesis when supported.
+- show production integration readiness for real stores, payment, and external AI.
+- improve the cockpit visual hierarchy, state badges, status strip, and operational layout.
 
 ## Graphify Context
 
@@ -62,3 +64,4 @@ Passed:
 - The UI is wired to existing backend contracts instead of duplicating business logic in the browser.
 - The cockpit is intentionally operational and dense for repeated testing of the end-to-end MVP flow.
 - Real store checkout remains blocked until a store adapter and payment provider are selected and configured.
+- Real integrations are not shown as connected unless credentials and provider configuration exist.
