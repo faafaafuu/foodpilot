@@ -4,10 +4,11 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CheckoutController } from './checkout.controller';
 import { CheckoutService } from './checkout.service';
 import { MockPaymentAdapter } from './mock-payment.adapter';
+import { SberPayPaymentAdapter } from './sberpay-payment.adapter';
 
 @Module({
   imports: [PrismaModule, CartBuilderModule],
   controllers: [CheckoutController],
-  providers: [CheckoutService, MockPaymentAdapter],
+  providers: [CheckoutService, MockPaymentAdapter, SberPayPaymentAdapter],
 })
 export class CheckoutModule {}

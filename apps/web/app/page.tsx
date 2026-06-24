@@ -83,6 +83,46 @@ type InstacartShoppingListLinkResponse = {
   checkoutBehavior: string;
 };
 
+type SberPayStatusResponse = {
+  provider: 'sberpay';
+  configured: boolean;
+  productionReady: boolean;
+  mode: 'development' | 'production';
+  baseUrl: string;
+  endpoint: string;
+  capabilities: string[];
+  requiredEnv: string[];
+  missingEnv: string[];
+  checkoutBehavior: 'REDIRECT_TO_SBER';
+};
+
+type PaymentIntentResponse = {
+  id: string;
+  cartId: string;
+  provider: 'MOCK' | 'SBERPAY';
+  providerPaymentId: string;
+  status: string;
+  amountCents: number;
+  currency: string;
+  confirmationUrl: string | null;
+  safetyNotes: string[];
+  confirmedAt: string | null;
+};
+
+type BrowserSessionStatusResponse = {
+  providers: Array<{
+    provider: string;
+    displayName: string;
+    mode: string;
+    capabilities: Array<{
+      code: string;
+      status: string;
+      description: string;
+    }>;
+  }>;
+  globalRules: string[];
+};
+
 type MenuCartResponse = {
   groceryList: GroceryListResponse;
   cart: CartResponse;
@@ -162,11 +202,15 @@ export default function HomePage() {
   const [instacartLink, setInstacartLink] = useState<InstacartShoppingListLinkResponse | null>(
     null,
   );
+  const [sberPayStatus, setSberPayStatus] = useState<SberPayStatusResponse | null>(null);
+  const [sberPayIntent, setSberPayIntent] = useState<PaymentIntentResponse | null>(null);
+  const [browserSessionStatus, setBrowserSessionStatus] =
+    useState<BrowserSessionStatusResponse | null>(null);
   const [chatInput, setChatInput] = useState(quickMessages[0]);
   const [chat, setChat] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      text: 'Готов. Могу собрать меню, корзину и реальную Instacart checkout-ссылку. Начни с кнопки "Полный сценарий".',
+      text: 'Готов. Могу собрать меню, корзину, открыть магазин через браузерную сессию и создать СберПэй-ссылку, когда merchant credentials настроены.',
     },
   ]);
   const [status, setStatus] = useState('Ожидаю действие');
@@ -186,7 +230,7 @@ export default function HomePage() {
     { label: 'Профиль', done: Boolean(profile) },
     { label: 'Корзина', done: Boolean(cart) },
     { label: 'Подтверждение', done: cartConfirmed },
-    { label: 'Instacart', done: Boolean(instacartLink) },
+    { label: 'Checkout', done: Boolean(sberPayIntent || instacartLink) },
   ];
   const integrations = useMemo(
     () => [
@@ -205,9 +249,18 @@ export default function HomePage() {
             }`,
       },
       {
-        name: 'Оплата',
-        state: 'ready' as const,
-        detail: 'Платёж выполняется на стороне Instacart после перехода пользователя',
+        name: 'СберПэй',
+        state: (sberPayStatus?.productionReady ? 'ready' : 'blocked') as IntegrationState,
+        detail: sberPayStatus?.productionReady
+          ? `Production endpoint готов: ${sberPayStatus.endpoint}`
+          : `Нужны credentials: ${sberPayStatus?.missingEnv.join(', ') || 'SBERPAY_USER_NAME'}`,
+      },
+      {
+        name: 'Браузерные магазины',
+        state: (browserSessionStatus ? 'ready' : 'blocked') as IntegrationState,
+        detail: browserSessionStatus
+          ? `${browserSessionStatus.providers.length} провайдера: Яндекс, Пятерочка, Магнит`
+          : 'Нужно проверить browser-session API',
       },
       {
         name: 'AI',
@@ -215,7 +268,7 @@ export default function HomePage() {
         detail: 'LocalAiAdapter; внешний LLM подключается через adapter',
       },
     ],
-    [instacartStatus],
+    [browserSessionStatus, instacartStatus, sberPayStatus],
   );
 
   async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -305,6 +358,7 @@ export default function HomePage() {
       setGroceryList(response.groceryList);
       setCart(response.cart);
       setInstacartLink(null);
+      setSberPayIntent(null);
     }
 
     return response;
@@ -342,6 +396,26 @@ export default function HomePage() {
     }
   }
 
+  async function checkSberPayStatus(): Promise<void> {
+    const statusResponse = await runAction('Проверяю СберПэй', () =>
+      apiFetch<SberPayStatusResponse>('/checkout/sberpay/status'),
+    );
+
+    if (statusResponse) {
+      setSberPayStatus(statusResponse);
+    }
+  }
+
+  async function checkBrowserSessions(): Promise<void> {
+    const statusResponse = await runAction('Проверяю браузерные магазины', () =>
+      apiFetch<BrowserSessionStatusResponse>('/store-adapters/browser-session/status'),
+    );
+
+    if (statusResponse) {
+      setBrowserSessionStatus(statusResponse);
+    }
+  }
+
   async function createInstacartLink(list = groceryList): Promise<void> {
     if (!list) {
       setStatus('Сначала собери список покупок');
@@ -374,6 +448,37 @@ export default function HomePage() {
     }
   }
 
+  async function createSberPayIntent(currentCart = cart): Promise<void> {
+    if (!currentCart) {
+      setStatus('Сначала собери и подтверди корзину');
+      return;
+    }
+
+    const paymentIntent = await runAction('Создаю СберПэй оплату', () =>
+      apiFetch<PaymentIntentResponse>(`/checkout/carts/${currentCart.id}/sberpay-payment-intents`, {
+        method: 'POST',
+        body: JSON.stringify({
+          returnUrl: window.location.href,
+          failUrl: window.location.href,
+          description: 'FoodPilot grocery cart',
+        }),
+      }),
+    );
+
+    if (paymentIntent) {
+      setSberPayIntent(paymentIntent);
+      setChat((messages) => [
+        ...messages,
+        {
+          role: 'assistant',
+          text: paymentIntent.confirmationUrl
+            ? 'СберПэй-ссылка готова. Открой её и подтверди оплату на стороне Сбера.'
+            : 'СберПэй intent создан, но провайдер не вернул ссылку оплаты.',
+        },
+      ]);
+    }
+  }
+
   async function runFullFlow(): Promise<void> {
     const response = await buildCart();
     if (!response) {
@@ -386,7 +491,7 @@ export default function HomePage() {
     if (!confirmed) {
       return;
     }
-    await createInstacartLink(response.groceryList);
+    await createSberPayIntent(confirmed);
   }
 
   async function sendChatMessage(message: string): Promise<void> {
@@ -476,16 +581,29 @@ export default function HomePage() {
 
       <section className="heroBand">
         <div>
-          <h2>Сценарий meal-prep на неделю</h2>
+          <h2>Meal-prep, корзина и оплата без лишних шагов</h2>
           <p>
-            Собираем меню из простых блюд, превращаем его в продукты, подбираем товары и проводим
-            checkout через Instacart. FoodPilot не списывает деньги и не оформляет заказ без
-            перехода пользователя к провайдеру.
+            Выбери блюда, собери продукты, подтверди корзину и создай ссылку оплаты. СберПэй
+            работает через официальный платёжный шлюз, а магазины без API подключаются через
+            пользовательскую браузерную сессию.
           </p>
         </div>
-        <button disabled={Boolean(busyAction)} type="button" onClick={() => void runFullFlow()}>
-          Полный сценарий
-        </button>
+        <div className="heroActions">
+          <button disabled={Boolean(busyAction)} type="button" onClick={() => void runFullFlow()}>
+            Собрать и перейти к оплате
+          </button>
+          <button
+            className="secondaryButton"
+            disabled={Boolean(busyAction)}
+            type="button"
+            onClick={() => {
+              void checkSberPayStatus();
+              void checkBrowserSessions();
+            }}
+          >
+            Проверить интеграции
+          </button>
+        </div>
       </section>
 
       <section className="statusStrip" aria-label="Статусы сценария">
@@ -562,6 +680,13 @@ export default function HomePage() {
             >
               3. Создать Instacart checkout
             </button>
+            <button
+              disabled={Boolean(busyAction) || !cartConfirmed}
+              type="button"
+              onClick={() => void createSberPayIntent()}
+            >
+              4. Создать СберПэй оплату
+            </button>
           </div>
         </article>
 
@@ -633,30 +758,42 @@ export default function HomePage() {
               <p className="sectionLabel">Payment</p>
               <h2>Checkout</h2>
             </div>
-            <StatusBadge value={instacartLink ? 'EXTERNAL_CHECKOUT' : 'NOT_CREATED'} />
+            <StatusBadge value={sberPayIntent ? 'SBERPAY_READY' : 'NOT_CREATED'} />
           </div>
           <Metric label="Корзина" value={cart?.status ?? 'нет'} />
-          <Metric label="Оплата" value="в Instacart" />
+          <Metric label="Оплата" value={sberPayIntent ? 'СберПэй' : 'не создана'} />
           <Metric label="Сумма" value={cart ? money(cart.subtotalCents) : '-'} />
-          {instacartLink ? (
+          {sberPayIntent ? (
             <div className="notice">
-              <p>Открой ссылку, выбери магазин, проверь замены, доставку и оплату в Instacart.</p>
+              <p>
+                Открой ссылку СберПэй и заверши оплату на стороне Сбера. FoodPilot не хранит карту и
+                не подтверждает платёж локально.
+              </p>
             </div>
           ) : (
             <p className="emptyText">
-              После подтверждения корзины FoodPilot создаст ссылку Instacart checkout.
+              После подтверждения корзины FoodPilot создаст СберПэй-ссылку, если production
+              credentials настроены.
             </p>
           )}
-          {instacartLink ? (
+          {sberPayIntent?.confirmationUrl ? (
             <a
               className="checkoutLink"
-              href={instacartLink.productsLinkUrl}
+              href={sberPayIntent.confirmationUrl}
               rel="noreferrer"
               target="_blank"
             >
-              Открыть Instacart checkout
+              Открыть СберПэй
             </a>
           ) : null}
+          <button
+            className="secondaryButton fullWidth"
+            disabled={Boolean(busyAction) || !cartConfirmed}
+            type="button"
+            onClick={() => void createSberPayIntent()}
+          >
+            Создать СберПэй ссылку
+          </button>
         </article>
 
         <article className="panel chatPanel">
@@ -740,8 +877,39 @@ export default function HomePage() {
             >
               Создать Instacart checkout link
             </button>
+            <button
+              disabled={Boolean(busyAction)}
+              type="button"
+              onClick={() => void checkSberPayStatus()}
+            >
+              Проверить СберПэй
+            </button>
+            <button
+              disabled={Boolean(busyAction) || !cartConfirmed}
+              type="button"
+              onClick={() => void createSberPayIntent()}
+            >
+              Создать СберПэй
+            </button>
+            <button
+              className="secondaryButton"
+              disabled={Boolean(busyAction)}
+              type="button"
+              onClick={() => void checkBrowserSessions()}
+            >
+              Проверить магазины
+            </button>
           </div>
-          {instacartLink ? (
+          {sberPayIntent?.confirmationUrl ? (
+            <a
+              className="checkoutLink"
+              href={sberPayIntent.confirmationUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Перейти к оплате СберПэй
+            </a>
+          ) : instacartLink ? (
             <a
               className="checkoutLink"
               href={instacartLink.productsLinkUrl}
@@ -752,8 +920,8 @@ export default function HomePage() {
             </a>
           ) : (
             <p className="integrationHint">
-              Для реального checkout задай production `INSTACART_API_KEY`,
-              `INSTACART_ENV=production` и перезапусти backend.
+              Для реального checkout задай production `INSTACART_API_KEY`, `SBERPAY_USER_NAME`,
+              `SBERPAY_PASSWORD` и перезапусти backend.
             </p>
           )}
         </article>
@@ -770,6 +938,8 @@ export default function HomePage() {
           <Metric label="Grocery list" value={groceryList?.id ?? '-'} />
           <Metric label="Cart" value={cart?.id ?? '-'} />
           <Metric label="Instacart" value={instacartStatus?.mode ?? '-'} />
+          <Metric label="SberPay" value={sberPayStatus?.mode ?? '-'} />
+          <Metric label="Payment" value={sberPayIntent?.id ?? '-'} />
         </article>
       </section>
     </main>
@@ -842,7 +1012,12 @@ function unitLabel(unit: string): string {
 }
 
 function statusClass(value: string): string {
-  if (value === 'CAPTURED' || value === 'CONFIRMED' || value === 'EXTERNAL_CHECKOUT') {
+  if (
+    value === 'CAPTURED' ||
+    value === 'CONFIRMED' ||
+    value === 'EXTERNAL_CHECKOUT' ||
+    value === 'SBERPAY_READY'
+  ) {
     return 'success';
   }
 
@@ -862,6 +1037,7 @@ function statusLabel(value: string): string {
     NOT_CREATED: 'нет',
     READY_FOR_CONFIRMATION: 'нужно подтвердить',
     REQUIRES_CONFIRMATION: 'нужно подтвердить',
+    SBERPAY_READY: 'СберПэй готов',
   };
 
   return labels[value] ?? value;

@@ -46,6 +46,13 @@ services:
       INSTACART_ENV: ${INSTACART_ENV:-production}
       INSTACART_API_KEY: ${INSTACART_API_KEY:-}
       INSTACART_API_BASE_URL: ${INSTACART_API_BASE_URL:-https://connect.instacart.com}
+      SBERPAY_ENV: ${SBERPAY_ENV:-production}
+      SBERPAY_API_BASE_URL: ${SBERPAY_API_BASE_URL:-https://ecommerce.sberbank.ru/ecomm/gw/partner/api/v1}
+      SBERPAY_USER_NAME: ${SBERPAY_USER_NAME:-}
+      SBERPAY_PASSWORD: ${SBERPAY_PASSWORD:-}
+      SBERPAY_MERCHANT_LOGIN: ${SBERPAY_MERCHANT_LOGIN:-}
+      SBERPAY_RETURN_URL: ${SBERPAY_RETURN_URL:-http://localhost:3000/checkout/success}
+      SBERPAY_FAIL_URL: ${SBERPAY_FAIL_URL:-http://localhost:3000/checkout/fail}
     ports:
       - '3001:3001'
 

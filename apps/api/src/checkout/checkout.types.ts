@@ -21,3 +21,16 @@ export interface PaymentIntentResponse {
   safetyNotes: string[];
   confirmedAt: Date | null;
 }
+
+export interface SberPayStatusResponse {
+  provider: 'sberpay';
+  configured: boolean;
+  productionReady: boolean;
+  mode: 'development' | 'production';
+  baseUrl: string;
+  endpoint: string;
+  capabilities: string[];
+  requiredEnv: string[];
+  missingEnv: string[];
+  checkoutBehavior: 'REDIRECT_TO_SBER';
+}

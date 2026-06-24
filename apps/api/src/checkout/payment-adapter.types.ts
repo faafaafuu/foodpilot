@@ -2,6 +2,7 @@ export interface CreatePaymentIntentInput {
   cartId: string;
   amountCents: number;
   currency: string;
+  description?: string;
 }
 
 export interface ProviderPaymentIntent {

@@ -2,8 +2,14 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Cart, CartItem, PaymentIntent } from '@prisma/client';
 import { CartBuilderService } from '../cart-builder/cart-builder.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CheckoutReviewResponse, PaymentIntentResponse } from './checkout.types';
+import {
+  CheckoutReviewResponse,
+  PaymentIntentResponse,
+  SberPayStatusResponse,
+} from './checkout.types';
+import { CreateSberPayPaymentDto } from './dto/create-sberpay-payment.dto';
 import { MockPaymentAdapter } from './mock-payment.adapter';
+import { SberPayPaymentAdapter } from './sberpay-payment.adapter';
 
 type CartWithItems = Cart & {
   items: CartItem[];
@@ -15,6 +21,7 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly cartBuilderService: CartBuilderService,
     private readonly paymentAdapter: MockPaymentAdapter,
+    private readonly sberPayAdapter: SberPayPaymentAdapter,
   ) {}
 
   async reviewCart(cartId: string): Promise<CheckoutReviewResponse> {
@@ -34,23 +41,12 @@ export class CheckoutService {
   }
 
   async createPaymentIntent(cartId: string): Promise<PaymentIntentResponse> {
-    const cart = await this.getCartWithItems(cartId);
-
-    if (cart.status !== 'CONFIRMED') {
-      throw new BadRequestException('Cart must be explicitly confirmed before payment.');
-    }
-
-    if (cart.items.length === 0) {
-      throw new BadRequestException('Cannot create payment intent for an empty cart.');
-    }
-
-    if (cart.subtotalCents <= 0) {
-      throw new BadRequestException('Cannot create payment intent without a positive amount.');
-    }
+    const cart = await this.getPayableCart(cartId);
 
     const existingIntent = await this.prisma.paymentIntent.findFirst({
       where: {
         cartId: cart.id,
+        provider: 'MOCK',
         status: 'REQUIRES_CONFIRMATION',
       },
       orderBy: { createdAt: 'desc' },
@@ -84,6 +80,58 @@ export class CheckoutService {
     return toPaymentIntentResponse(paymentIntent);
   }
 
+  getSberPayStatus(): SberPayStatusResponse {
+    return this.sberPayAdapter.getStatus();
+  }
+
+  async createSberPayPaymentIntent(
+    cartId: string,
+    dto: CreateSberPayPaymentDto = {},
+  ): Promise<PaymentIntentResponse> {
+    const cart = await this.getPayableCart(cartId);
+
+    const existingIntent = await this.prisma.paymentIntent.findFirst({
+      where: {
+        cartId: cart.id,
+        provider: 'SBERPAY',
+        status: 'REQUIRES_CONFIRMATION',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existingIntent) {
+      return toPaymentIntentResponse(existingIntent);
+    }
+
+    const providerIntent = await this.sberPayAdapter.createPaymentIntent(
+      {
+        cartId: cart.id,
+        amountCents: cart.subtotalCents,
+        currency: cart.currency,
+        description: `FoodPilot grocery cart ${cart.id}`,
+      },
+      dto,
+    );
+    const paymentIntent = await this.prisma.paymentIntent.create({
+      data: {
+        cartId: cart.id,
+        provider: 'SBERPAY',
+        providerPaymentId: providerIntent.providerPaymentId,
+        amountCents: cart.subtotalCents,
+        currency: cart.currency,
+        confirmationUrl: providerIntent.confirmationUrl,
+        safetyNotes: [
+          'SberPay payment is completed on the Sber payment page.',
+          'FoodPilot does not store card data.',
+          'FoodPilot does not capture SberPay payments locally.',
+          'External store order submission still requires user confirmation.',
+        ],
+      },
+    });
+
+    return toPaymentIntentResponse(paymentIntent);
+  }
+
   async confirmPaymentIntent(paymentIntentId: string): Promise<PaymentIntentResponse> {
     const paymentIntent = await this.prisma.paymentIntent.findUnique({
       where: { id: paymentIntentId },
@@ -99,6 +147,12 @@ export class CheckoutService {
 
     if (paymentIntent.status !== 'REQUIRES_CONFIRMATION') {
       throw new BadRequestException('Only payment intents requiring confirmation can be captured.');
+    }
+
+    if (paymentIntent.provider !== 'MOCK') {
+      throw new BadRequestException(
+        `${paymentIntent.provider} payments must be confirmed by provider status callbacks, not local capture.`,
+      );
     }
 
     await this.paymentAdapter.capturePayment(paymentIntent.providerPaymentId);
@@ -121,6 +175,24 @@ export class CheckoutService {
 
     if (!cart) {
       throw new NotFoundException(`Cart ${cartId} was not found`);
+    }
+
+    return cart;
+  }
+
+  private async getPayableCart(cartId: string): Promise<CartWithItems> {
+    const cart = await this.getCartWithItems(cartId);
+
+    if (cart.status !== 'CONFIRMED') {
+      throw new BadRequestException('Cart must be explicitly confirmed before payment.');
+    }
+
+    if (cart.items.length === 0) {
+      throw new BadRequestException('Cannot create payment intent for an empty cart.');
+    }
+
+    if (cart.subtotalCents <= 0) {
+      throw new BadRequestException('Cannot create payment intent without a positive amount.');
     }
 
     return cart;

@@ -80,6 +80,7 @@ enum CartStatus {
 
 enum PaymentProvider {
   MOCK
+  SBERPAY
 }
 
 enum PaymentIntentStatus {

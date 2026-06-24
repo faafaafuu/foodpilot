@@ -42,6 +42,16 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.secondaryButton {
+  background: #e8eef1;
+  color: #17212a;
+}
+
+.fullWidth {
+  margin-top: 12px;
+  width: 100%;
+}
+
 input {
   background: #ffffff;
   border: 1px solid #ccd5d9;
@@ -112,6 +122,11 @@ h2 {
   margin: 0 auto 14px;
   max-width: 1320px;
   padding: 16px;
+}
+
+.heroActions {
+  display: grid;
+  gap: 10px;
 }
 
 .heroBand h2 {

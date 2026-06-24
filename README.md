@@ -188,8 +188,21 @@ Checkout API:
 - `GET /checkout/carts/:cartId/review`
 - `POST /checkout/carts/:cartId/payment-intents`
 - `POST /checkout/payment-intents/:paymentIntentId/confirm`
+- `GET /checkout/sberpay/status`
+- `POST /checkout/carts/:cartId/sberpay-payment-intents`
 
-The current checkout implementation uses `MockPaymentAdapter`. It creates and captures mock payment intents for confirmed carts only; no real card data, money movement, or external store order is handled by FoodPilot.
+The local mock checkout remains available for development. Production SberPay checkout uses Sber's payment gateway `register.do` flow and returns a provider payment page URL. FoodPilot stores only payment-intent metadata; card data and confirmation stay inside Sber.
+
+Production SberPay requires:
+
+- `SBERPAY_ENV=production`
+- `SBERPAY_API_BASE_URL=https://ecommerce.sberbank.ru/ecomm/gw/partner/api/v1`
+- `SBERPAY_USER_NAME=<merchant api login>`
+- `SBERPAY_PASSWORD=<merchant api password>`
+- `SBERPAY_RETURN_URL=<public success url>`
+- `SBERPAY_FAIL_URL=<public failure url>`
+
+FoodPilot intentionally blocks SberPay payment creation if production credentials are missing or the gateway URL looks like a sandbox/test endpoint.
 
 AI Assistant API:
 
@@ -201,7 +214,7 @@ Web:
 npm run dev:web
 ```
 
-The web dashboard is an interactive cockpit. It can create the demo profile, build a cart from selected dishes, confirm the cart, create an Instacart production checkout link when credentials are configured, chat with the local AI adapter, and use browser voice input where supported. Mock payment endpoints remain available for backend development but are not the primary user checkout path.
+The web dashboard is an interactive cockpit. It can create the demo profile, build a cart from selected dishes, confirm the cart, create a SberPay redirect payment when credentials are configured, create an Instacart production checkout link when credentials are configured, chat with the local AI adapter, and use browser voice input where supported. Mock payment endpoints remain available for backend development but are not the primary user checkout path.
 
 Mobile:
 
@@ -268,7 +281,10 @@ Services:
 18. Interactive web cockpit with cart, checkout, chat, and browser voice input. Done.
 19. Real external grocery checkout redirect through Instacart Developer Platform. Done.
 20. Production-only Instacart checkout gating and UI flow. Done.
-21. Public store page parser fallback for VkusVill search. Done.
+21. Public VkusVill page parser fallback. Done.
+22. Browser-session store automation policy. Done.
+23. Playwright browser store sessions. Done.
+24. Production-gated SberPay redirect checkout and web panel. Done.
 
 ## Safety Rules
 
