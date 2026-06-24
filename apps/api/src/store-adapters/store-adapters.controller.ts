@@ -1,9 +1,11 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AddToCartDto } from './dto/add-to-cart.dto';
+import { PageStoreAdapter } from './page-store.adapter';
 import { ReplaceProductDto } from './dto/replace-product.dto';
 import { MockStoreAdapter } from './mock-store.adapter';
 import {
+  ParsedStoreSearchResponse,
   StoreAvailabilityResponse,
   StoreCartResponse,
   StoreProductResponse,
@@ -52,5 +54,18 @@ export class StoreAdaptersController {
     @Body() dto: ReplaceProductDto,
   ): Promise<StoreCartResponse> {
     return this.mockStoreAdapter.replaceProduct(cartId, dto.oldProductId, dto.newProductId);
+  }
+}
+
+@ApiTags('store-adapters')
+@Controller('store-adapters/page')
+export class PageStoreAdaptersController {
+  constructor(private readonly pageStoreAdapter: PageStoreAdapter) {}
+
+  @Get('vkusvill/search')
+  @ApiQuery({ name: 'query', required: true, type: String })
+  @ApiOkResponse({ description: 'Parse public VkusVill search page products.' })
+  searchVkusvill(@Query('query') query = ''): Promise<ParsedStoreSearchResponse> {
+    return this.pageStoreAdapter.searchVkusvill(query);
   }
 }

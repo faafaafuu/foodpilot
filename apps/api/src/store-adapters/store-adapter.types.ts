@@ -14,6 +14,28 @@ export interface StoreProductResponse {
   qualityTier: BudgetTier;
 }
 
+export interface ParsedStoreProductResponse {
+  id: string;
+  provider: string;
+  externalId: string;
+  name: string;
+  category: string | null;
+  priceCents: number | null;
+  priceText: string | null;
+  productUrl: string;
+  imageUrl: string | null;
+  available: boolean;
+  source: 'PAGE_PARSE';
+}
+
+export interface ParsedStoreSearchResponse {
+  provider: string;
+  query: string;
+  searchUrl: string;
+  products: ParsedStoreProductResponse[];
+  warnings: string[];
+}
+
 export interface StoreAvailabilityResponse {
   productId: string;
   available: boolean;

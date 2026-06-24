@@ -100,6 +100,12 @@ Mock Store Adapter API:
 - `GET /store-adapters/mock/cart/:cartId`
 - `POST /store-adapters/mock/cart/:cartId/replace`
 
+Page Parser Store API:
+
+- `GET /store-adapters/page/vkusvill/search?query=фарш`
+
+This is the fallback path for stores without an official public API. It parses public store pages and returns product candidates with source URLs for user review. It does not bypass checkout, submit orders, or pay automatically.
+
 Real Store Redirect API:
 
 - `GET /external-stores/instacart/status`
@@ -230,6 +236,7 @@ Services:
 18. Interactive web cockpit with cart, checkout, chat, and browser voice input. Done.
 19. Real external grocery checkout redirect through Instacart Developer Platform. Done.
 20. Production-only Instacart checkout gating and UI flow. Done.
+21. Public store page parser fallback for VkusVill search. Done.
 
 ## Safety Rules
 
