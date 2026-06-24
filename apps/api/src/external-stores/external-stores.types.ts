@@ -1,10 +1,12 @@
 export interface ExternalStoreStatusResponse {
   provider: 'instacart';
   configured: boolean;
+  productionReady: boolean;
   mode: 'development' | 'production';
   baseUrl: string;
   capabilities: string[];
   requiredEnv: string[];
+  missingEnv: string[];
   checkoutBehavior: 'REDIRECT_TO_PROVIDER';
 }
 

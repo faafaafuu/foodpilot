@@ -21,20 +21,28 @@ interface InstacartProductsLinkApiResponse {
   products_link_url?: string;
 }
 
+const INSTACART_DEVELOPMENT_BASE_URL = 'https://connect.dev.instacart.tools';
+const INSTACART_PRODUCTION_BASE_URL = 'https://connect.instacart.com';
+
 @Injectable()
 export class InstacartDeveloperAdapter {
   constructor(private readonly groceryListsService: GroceryListsService) {}
 
   getStatus(): ExternalStoreStatusResponse {
     const baseUrl = this.baseUrl();
+    const mode = this.mode();
+    const missingEnv = this.missingEnv();
+    const productionReady = missingEnv.length === 0;
 
     return {
       provider: 'instacart',
       configured: Boolean(this.apiKey()),
-      mode: baseUrl.includes('dev.') ? 'development' : 'production',
+      productionReady,
+      mode,
       baseUrl,
       capabilities: ['nearby_retailers', 'shopping_list_link', 'marketplace_checkout_redirect'],
-      requiredEnv: ['INSTACART_API_KEY'],
+      requiredEnv: ['INSTACART_API_KEY', 'INSTACART_ENV=production'],
+      missingEnv,
       checkoutBehavior: 'REDIRECT_TO_PROVIDER',
     };
   }
@@ -43,7 +51,7 @@ export class InstacartDeveloperAdapter {
     postalCode: string,
     countryCode = 'US',
   ): Promise<InstacartRetailersResponse> {
-    this.requireApiKey();
+    this.requireProductionReady();
     if (!postalCode?.trim()) {
       throw new BadRequestException('postalCode is required to query Instacart retailers.');
     }
@@ -64,7 +72,7 @@ export class InstacartDeveloperAdapter {
     groceryListId: string,
     dto: CreateInstacartLinkDto = {},
   ): Promise<InstacartShoppingListLinkResponse> {
-    this.requireApiKey();
+    this.requireProductionReady();
     const groceryList = await this.groceryListsService.getGroceryList(groceryListId);
     const url = new URL('/idp/v1/products/products_link', this.baseUrl());
     const body = {
@@ -135,12 +143,53 @@ export class InstacartDeveloperAdapter {
     return key;
   }
 
+  private requireProductionReady(): string {
+    const key = this.requireApiKey();
+    const missingEnv = this.missingEnv();
+
+    if (missingEnv.length > 0) {
+      throw new BadRequestException(
+        `Instacart production checkout is not configured. Missing: ${missingEnv.join(', ')}.`,
+      );
+    }
+
+    return key;
+  }
+
+  private missingEnv(): string[] {
+    const missing: string[] = [];
+
+    if (!this.apiKey()) {
+      missing.push('INSTACART_API_KEY');
+    }
+
+    if (this.mode() !== 'production') {
+      missing.push('INSTACART_ENV=production');
+    }
+
+    if (this.baseUrl().includes('.dev.')) {
+      missing.push('INSTACART_API_BASE_URL=https://connect.instacart.com');
+    }
+
+    return missing;
+  }
+
   private apiKey(): string | undefined {
     return process.env.INSTACART_API_KEY;
   }
 
+  private mode(): 'development' | 'production' {
+    return process.env.INSTACART_ENV === 'development' ? 'development' : 'production';
+  }
+
   private baseUrl(): string {
-    return process.env.INSTACART_API_BASE_URL ?? 'https://connect.dev.instacart.tools';
+    if (process.env.INSTACART_API_BASE_URL) {
+      return process.env.INSTACART_API_BASE_URL;
+    }
+
+    return this.mode() === 'development'
+      ? INSTACART_DEVELOPMENT_BASE_URL
+      : INSTACART_PRODUCTION_BASE_URL;
   }
 }
 

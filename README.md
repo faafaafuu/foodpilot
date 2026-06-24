@@ -106,7 +106,15 @@ Real Store Redirect API:
 - `GET /external-stores/instacart/retailers?postalCode=10001&countryCode=US`
 - `POST /external-stores/instacart/grocery-lists/:groceryListId/link`
 
-Instacart uses the official Instacart Developer Platform and returns a shopping-list checkout link. FoodPilot sends the grocery-list items, then the user chooses the retailer, reviews substitutions, delivery, and payment inside Instacart. Configure it with `INSTACART_API_KEY`; `INSTACART_API_BASE_URL` defaults to `https://connect.dev.instacart.tools`.
+Instacart uses the official Instacart Developer Platform and returns a shopping-list checkout link. FoodPilot sends the grocery-list items, then the user chooses the retailer, reviews substitutions, delivery, and payment inside Instacart.
+
+Production checkout requires:
+
+- `INSTACART_ENV=production`
+- `INSTACART_API_KEY=<production key from Instacart Developer Dashboard>`
+- `INSTACART_API_BASE_URL=https://connect.instacart.com`
+
+FoodPilot intentionally blocks checkout-link creation if the Instacart integration is left in development mode.
 
 Cart Builder API:
 
@@ -155,7 +163,7 @@ Web:
 npm run dev:web
 ```
 
-The web dashboard is an interactive cockpit. It can create the demo profile, build a mock-store cart from selected dishes, confirm the cart, create and capture a mock payment intent, create an Instacart checkout link when API credentials are configured, chat with the local AI adapter, and use browser voice input where supported.
+The web dashboard is an interactive cockpit. It can create the demo profile, build a cart from selected dishes, confirm the cart, create an Instacart production checkout link when credentials are configured, chat with the local AI adapter, and use browser voice input where supported. Mock payment endpoints remain available for backend development but are not the primary user checkout path.
 
 Mobile:
 
@@ -221,6 +229,7 @@ Services:
 17. Checkout and mock payment intent flow. Done.
 18. Interactive web cockpit with cart, checkout, chat, and browser voice input. Done.
 19. Real external grocery checkout redirect through Instacart Developer Platform. Done.
+20. Production-only Instacart checkout gating and UI flow. Done.
 
 ## Safety Rules
 

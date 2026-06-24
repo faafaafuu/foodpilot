@@ -56,15 +56,6 @@ type CartResponse = {
   }>;
 };
 
-type PaymentIntentResponse = {
-  id: string;
-  status: string;
-  amountCents: number;
-  currency: string;
-  confirmationUrl: string | null;
-  safetyNotes: string[];
-};
-
 type AiResponse = {
   intent: string;
   reply: string;
@@ -74,10 +65,12 @@ type AiResponse = {
 type ExternalStoreStatusResponse = {
   provider: 'instacart';
   configured: boolean;
+  productionReady: boolean;
   mode: 'development' | 'production';
   baseUrl: string;
   capabilities: string[];
   requiredEnv: string[];
+  missingEnv: string[];
   checkoutBehavior: string;
 };
 
@@ -165,7 +158,6 @@ export default function HomePage() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [groceryList, setGroceryList] = useState<GroceryListResponse | null>(null);
   const [cart, setCart] = useState<CartResponse | null>(null);
-  const [paymentIntent, setPaymentIntent] = useState<PaymentIntentResponse | null>(null);
   const [instacartStatus, setInstacartStatus] = useState<ExternalStoreStatusResponse | null>(null);
   const [instacartLink, setInstacartLink] = useState<InstacartShoppingListLinkResponse | null>(
     null,
@@ -174,7 +166,7 @@ export default function HomePage() {
   const [chat, setChat] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      text: 'Готов. Могу собрать меню, корзину и mock-оплату. Начни с кнопки "Полный сценарий".',
+      text: 'Готов. Могу собрать меню, корзину и реальную Instacart checkout-ссылку. Начни с кнопки "Полный сценарий".',
     },
   ]);
   const [status, setStatus] = useState('Ожидаю действие');
@@ -190,32 +182,32 @@ export default function HomePage() {
   );
   const cartReady = cart?.status === 'READY_FOR_CONFIRMATION';
   const cartConfirmed = cart?.status === 'CONFIRMED';
-  const canPay = cartConfirmed && !paymentIntent;
-  const captured = paymentIntent?.status === 'CAPTURED';
   const workflowSteps = [
     { label: 'Профиль', done: Boolean(profile) },
     { label: 'Корзина', done: Boolean(cart) },
     { label: 'Подтверждение', done: cartConfirmed },
-    { label: 'Оплата', done: captured },
+    { label: 'Instacart', done: Boolean(instacartLink) },
   ];
   const integrations = useMemo(
     () => [
       {
         name: 'Mock Store',
-        state: 'ready' as const,
-        detail: 'Рабочая сборка корзины и замены товаров',
+        state: 'mock' as const,
+        detail: 'Локальный fallback для разработки; не используется как реальный заказ',
       },
       {
         name: 'Instacart',
-        state: (instacartStatus?.configured ? 'ready' : 'blocked') as IntegrationState,
-        detail: instacartStatus?.configured
-          ? `API настроен: ${instacartStatus.mode}, checkout через внешнюю ссылку`
-          : 'Нужен INSTACART_API_KEY; после этого FoodPilot создаёт реальную shopping-list checkout ссылку',
+        state: (instacartStatus?.productionReady ? 'ready' : 'blocked') as IntegrationState,
+        detail: instacartStatus?.productionReady
+          ? `Production API готов: ${instacartStatus.baseUrl}`
+          : `Нужны production credentials: ${
+              instacartStatus?.missingEnv.join(', ') || 'INSTACART_API_KEY'
+            }`,
       },
       {
         name: 'Оплата',
-        state: 'mock' as const,
-        detail: 'MockPaymentAdapter; реальные деньги только через PCI-провайдера',
+        state: 'ready' as const,
+        detail: 'Платёж выполняется на стороне Instacart после перехода пользователя',
       },
       {
         name: 'AI',
@@ -286,7 +278,7 @@ export default function HomePage() {
     return created;
   }
 
-  async function buildCart(): Promise<CartResponse | null> {
+  async function buildCart(): Promise<MenuCartResponse | null> {
     const currentProfile = await ensureProfile();
     if (!currentProfile) {
       return null;
@@ -312,20 +304,25 @@ export default function HomePage() {
     if (response) {
       setGroceryList(response.groceryList);
       setCart(response.cart);
-      setPaymentIntent(null);
       setInstacartLink(null);
     }
 
-    return response?.cart ?? null;
+    return response;
   }
 
   async function confirmCart(): Promise<CartResponse | null> {
     if (!cart) {
-      return buildCart();
+      const response = await buildCart();
+
+      return response ? confirmCartById(response.cart.id) : null;
     }
 
+    return confirmCartById(cart.id);
+  }
+
+  async function confirmCartById(cartId: string): Promise<CartResponse | null> {
     const confirmed = await runAction('Подтверждаю корзину', () =>
-      apiFetch<CartResponse>(`/cart-builder/carts/${cart.id}/confirm`, { method: 'POST' }),
+      apiFetch<CartResponse>(`/cart-builder/carts/${cartId}/confirm`, { method: 'POST' }),
     );
 
     if (confirmed) {
@@ -333,54 +330,6 @@ export default function HomePage() {
     }
 
     return confirmed;
-  }
-
-  async function createPayment(): Promise<PaymentIntentResponse | null> {
-    let currentCart = cart;
-    if (!currentCart) {
-      currentCart = await buildCart();
-    }
-    if (!currentCart) {
-      return null;
-    }
-    if (currentCart.status !== 'CONFIRMED') {
-      currentCart = await confirmCart();
-    }
-    if (!currentCart) {
-      return null;
-    }
-
-    const intent = await runAction('Создаю mock-платёж', () =>
-      apiFetch<PaymentIntentResponse>(`/checkout/carts/${currentCart.id}/payment-intents`, {
-        method: 'POST',
-      }),
-    );
-
-    if (intent) {
-      setPaymentIntent(intent);
-    }
-
-    return intent;
-  }
-
-  async function capturePayment(): Promise<void> {
-    let intent = paymentIntent;
-    if (!intent) {
-      intent = await createPayment();
-    }
-    if (!intent) {
-      return;
-    }
-
-    const capturedIntent = await runAction('Подтверждаю mock-оплату', () =>
-      apiFetch<PaymentIntentResponse>(`/checkout/payment-intents/${intent.id}/confirm`, {
-        method: 'POST',
-      }),
-    );
-
-    if (capturedIntent) {
-      setPaymentIntent(capturedIntent);
-    }
   }
 
   async function checkInstacartStatus(): Promise<void> {
@@ -393,15 +342,15 @@ export default function HomePage() {
     }
   }
 
-  async function createInstacartLink(): Promise<void> {
-    if (!groceryList) {
+  async function createInstacartLink(list = groceryList): Promise<void> {
+    if (!list) {
       setStatus('Сначала собери список покупок');
       return;
     }
 
     const link = await runAction('Создаю Instacart checkout link', () =>
       apiFetch<InstacartShoppingListLinkResponse>(
-        `/external-stores/instacart/grocery-lists/${groceryList.id}/link`,
+        `/external-stores/instacart/grocery-lists/${list.id}/link`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -426,19 +375,18 @@ export default function HomePage() {
   }
 
   async function runFullFlow(): Promise<void> {
-    const currentCart = await buildCart();
-    if (!currentCart) {
+    const response = await buildCart();
+    if (!response) {
       return;
     }
-    const confirmed = currentCart.status === 'CONFIRMED' ? currentCart : await confirmCart();
+    const confirmed =
+      response.cart.status === 'CONFIRMED'
+        ? response.cart
+        : await confirmCartById(response.cart.id);
     if (!confirmed) {
       return;
     }
-    const intent = await createPayment();
-    if (!intent) {
-      return;
-    }
-    await capturePayment();
+    await createInstacartLink(response.groceryList);
   }
 
   async function sendChatMessage(message: string): Promise<void> {
@@ -531,7 +479,8 @@ export default function HomePage() {
           <h2>Сценарий meal-prep на неделю</h2>
           <p>
             Собираем меню из простых блюд, превращаем его в продукты, подбираем товары и проводим
-            checkout. Реальные магазины и платежи включаются только после подключения credentials.
+            checkout через Instacart. FoodPilot не списывает деньги и не оформляет заказ без
+            перехода пользователя к провайдеру.
           </p>
         </div>
         <button disabled={Boolean(busyAction)} type="button" onClick={() => void runFullFlow()}>
@@ -607,18 +556,11 @@ export default function HomePage() {
               2. Подтвердить корзину
             </button>
             <button
-              disabled={Boolean(busyAction) || !canPay}
+              disabled={Boolean(busyAction) || !cartConfirmed || !groceryList}
               type="button"
-              onClick={() => void createPayment()}
+              onClick={() => void createInstacartLink()}
             >
-              3. Создать mock-платёж
-            </button>
-            <button
-              disabled={Boolean(busyAction) || !paymentIntent || captured}
-              type="button"
-              onClick={() => void capturePayment()}
-            >
-              4. Mock-оплатить
+              3. Создать Instacart checkout
             </button>
           </div>
         </article>
@@ -691,19 +633,19 @@ export default function HomePage() {
               <p className="sectionLabel">Payment</p>
               <h2>Checkout</h2>
             </div>
-            <StatusBadge value={paymentIntent?.status ?? 'NOT_CREATED'} />
+            <StatusBadge value={instacartLink ? 'EXTERNAL_CHECKOUT' : 'NOT_CREATED'} />
           </div>
           <Metric label="Корзина" value={cart?.status ?? 'нет'} />
-          <Metric label="Оплата" value={paymentIntent?.status ?? 'нет'} />
-          <Metric label="Сумма" value={paymentIntent ? money(paymentIntent.amountCents) : '-'} />
-          {paymentIntent ? (
+          <Metric label="Оплата" value="в Instacart" />
+          <Metric label="Сумма" value={cart ? money(cart.subtotalCents) : '-'} />
+          {instacartLink ? (
             <div className="notice">
-              {paymentIntent.safetyNotes.map((note) => (
-                <p key={note}>{note}</p>
-              ))}
+              <p>Открой ссылку, выбери магазин, проверь замены, доставку и оплату в Instacart.</p>
             </div>
           ) : (
-            <p className="emptyText">Оплата появится после подтверждения корзины.</p>
+            <p className="emptyText">
+              После подтверждения корзины FoodPilot создаст ссылку Instacart checkout.
+            </p>
           )}
           {instacartLink ? (
             <a
@@ -810,8 +752,8 @@ export default function HomePage() {
             </a>
           ) : (
             <p className="integrationHint">
-              Для реального checkout задай `INSTACART_API_KEY` в env API-процесса и перезапусти
-              backend.
+              Для реального checkout задай production `INSTACART_API_KEY`,
+              `INSTACART_ENV=production` и перезапусти backend.
             </p>
           )}
         </article>
@@ -827,7 +769,7 @@ export default function HomePage() {
           <Metric label="User ID" value={profile?.user.id ?? '-'} />
           <Metric label="Grocery list" value={groceryList?.id ?? '-'} />
           <Metric label="Cart" value={cart?.id ?? '-'} />
-          <Metric label="Payment" value={paymentIntent?.id ?? '-'} />
+          <Metric label="Instacart" value={instacartStatus?.mode ?? '-'} />
         </article>
       </section>
     </main>
@@ -900,7 +842,7 @@ function unitLabel(unit: string): string {
 }
 
 function statusClass(value: string): string {
-  if (value === 'CAPTURED' || value === 'CONFIRMED') {
+  if (value === 'CAPTURED' || value === 'CONFIRMED' || value === 'EXTERNAL_CHECKOUT') {
     return 'success';
   }
 
@@ -916,6 +858,7 @@ function statusLabel(value: string): string {
     CAPTURED: 'оплачено',
     CONFIRMED: 'подтверждено',
     EMPTY: 'пусто',
+    EXTERNAL_CHECKOUT: 'готово',
     NOT_CREATED: 'нет',
     READY_FOR_CONFIRMATION: 'нужно подтвердить',
     REQUIRES_CONFIRMATION: 'нужно подтвердить',

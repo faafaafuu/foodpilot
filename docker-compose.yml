@@ -43,6 +43,9 @@ services:
       JWT_REFRESH_SECRET: local-refresh-secret
       AI_PROVIDER: mock
       STORE_PROVIDER: mock
+      INSTACART_ENV: ${INSTACART_ENV:-production}
+      INSTACART_API_KEY: ${INSTACART_API_KEY:-}
+      INSTACART_API_BASE_URL: ${INSTACART_API_BASE_URL:-https://connect.instacart.com}
     ports:
       - '3001:3001'
 

@@ -29,17 +29,21 @@ Relevant constraints:
   - status check;
   - nearby-retailer lookup by postal code;
   - grocery-list to Instacart shopping-list link creation.
+- Production checkout gating:
+  - `INSTACART_ENV=production`;
+  - production API key;
+  - production base URL `https://connect.instacart.com`.
 - Added REST routes:
   - `GET /external-stores/instacart/status`
   - `GET /external-stores/instacart/retailers?postalCode=10001&countryCode=US`
   - `POST /external-stores/instacart/grocery-lists/:groceryListId/link`
 - Updated the web cockpit with Instacart status and checkout-link actions.
-- Documented `INSTACART_API_KEY` and optional `INSTACART_API_BASE_URL`.
+- Documented `INSTACART_API_KEY`, `INSTACART_ENV`, and `INSTACART_API_BASE_URL`.
 
 ## Security Notes
 
 - No Instacart token is committed.
-- Missing credentials return a controlled `400` instead of falling back to mock behavior.
+- Missing credentials or development-mode configuration return a controlled `400` instead of falling back to mock behavior.
 - FoodPilot does not collect card data and does not confirm external orders.
 - Russian grocery providers remain future work unless official partner APIs or user-authorized browser sessions are available.
 
@@ -59,11 +63,11 @@ Commands run for this stage:
 
 `npm audit --audit-level=high` passed without high or critical findings. It still reports existing moderate advisories in transitive Jest, Expo, Next, and `@nestjs/swagger` dependency chains; the suggested automatic fixes require breaking upgrades and are tracked outside this stage.
 
-The live Instacart status endpoint was verified on a fresh API process at port `3004`. With no `INSTACART_API_KEY`, it returns `configured: false` and the required env var instead of pretending that a real checkout is available.
+The live Instacart status endpoint was verified on a fresh API process at port `3004`. With no `INSTACART_API_KEY`, it returns `configured: false`, `productionReady: false`, and the missing env vars instead of pretending that a real checkout is available.
 
 ## Self-Review
 
 - The integration is minimal but real: it uses provider credentials and provider checkout rather than local fake checkout.
 - The external store boundary is isolated from the mock cart builder.
-- The UI clearly shows when Instacart is blocked by missing credentials.
+- The UI clearly shows when Instacart is blocked by missing production credentials.
 - Real direct order placement and payment remain intentionally out of scope until a provider contract and explicit confirmation flow are available.

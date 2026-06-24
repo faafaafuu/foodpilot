@@ -9,6 +9,7 @@ describe('InstacartDeveloperAdapter', () => {
     process.env = { ...originalEnv };
     delete process.env.INSTACART_API_KEY;
     delete process.env.INSTACART_API_BASE_URL;
+    delete process.env.INSTACART_ENV;
   });
 
   afterAll(() => {
@@ -23,10 +24,12 @@ describe('InstacartDeveloperAdapter', () => {
     expect(adapter.getStatus()).toEqual({
       provider: 'instacart',
       configured: false,
-      mode: 'development',
-      baseUrl: 'https://connect.dev.instacart.tools',
+      productionReady: false,
+      mode: 'production',
+      baseUrl: 'https://connect.instacart.com',
       capabilities: ['nearby_retailers', 'shopping_list_link', 'marketplace_checkout_redirect'],
-      requiredEnv: ['INSTACART_API_KEY'],
+      requiredEnv: ['INSTACART_API_KEY', 'INSTACART_ENV=production'],
+      missingEnv: ['INSTACART_API_KEY'],
       checkoutBehavior: 'REDIRECT_TO_PROVIDER',
     });
   });
@@ -42,6 +45,7 @@ describe('InstacartDeveloperAdapter', () => {
   it('creates an Instacart shopping list link from a FoodPilot grocery list', async () => {
     process.env.INSTACART_API_KEY = 'test-instacart-key';
     process.env.INSTACART_API_BASE_URL = 'https://connect.instacart.test';
+    process.env.INSTACART_ENV = 'production';
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       text: jest
@@ -95,6 +99,30 @@ describe('InstacartDeveloperAdapter', () => {
           },
         ],
       }),
+    );
+  });
+
+  it('blocks checkout links when Instacart is left in development mode', async () => {
+    process.env.INSTACART_API_KEY = 'test-instacart-key';
+    process.env.INSTACART_ENV = 'development';
+    const adapter = new InstacartDeveloperAdapter(
+      createGroceryListsServiceMock() as unknown as GroceryListsService,
+    );
+
+    expect(adapter.getStatus()).toEqual(
+      expect.objectContaining({
+        configured: true,
+        productionReady: false,
+        mode: 'development',
+        baseUrl: 'https://connect.dev.instacart.tools',
+        missingEnv: [
+          'INSTACART_ENV=production',
+          'INSTACART_API_BASE_URL=https://connect.instacart.com',
+        ],
+      }),
+    );
+    await expect(adapter.createShoppingListLink('list-1')).rejects.toThrow(
+      'Instacart production checkout is not configured',
     );
   });
 });
