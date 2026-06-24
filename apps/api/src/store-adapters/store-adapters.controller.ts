@@ -1,10 +1,14 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AddToCartDto } from './dto/add-to-cart.dto';
+import { BrowserStoreAutomationPolicyService } from './browser-store-automation-policy.service';
+import { CreateBrowserAutomationPlanDto } from './dto/create-browser-automation-plan.dto';
 import { PageStoreAdapter } from './page-store.adapter';
 import { ReplaceProductDto } from './dto/replace-product.dto';
 import { MockStoreAdapter } from './mock-store.adapter';
 import {
+  BrowserStoreAutomationPlanResponse,
+  BrowserStoreAutomationStatusResponse,
   ParsedStoreSearchResponse,
   StoreAvailabilityResponse,
   StoreCartResponse,
@@ -67,5 +71,27 @@ export class PageStoreAdaptersController {
   @ApiOkResponse({ description: 'Parse public VkusVill search page products.' })
   searchVkusvill(@Query('query') query = ''): Promise<ParsedStoreSearchResponse> {
     return this.pageStoreAdapter.searchVkusvill(query);
+  }
+}
+
+@ApiTags('store-adapters')
+@Controller('store-adapters/browser-session')
+export class BrowserSessionStoreAdaptersController {
+  constructor(private readonly policyService: BrowserStoreAutomationPolicyService) {}
+
+  @Get('status')
+  @ApiOkResponse({ description: 'Browser-session store automation capabilities and limits.' })
+  getStatus(): BrowserStoreAutomationStatusResponse {
+    return this.policyService.getStatus();
+  }
+
+  @Post('automation-plan')
+  @ApiCreatedResponse({
+    description: 'Create a safe automation plan for a user-owned browser session.',
+  })
+  createAutomationPlan(
+    @Body() dto: CreateBrowserAutomationPlanDto,
+  ): BrowserStoreAutomationPlanResponse {
+    return this.policyService.createPlan(dto);
   }
 }

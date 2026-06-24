@@ -106,6 +106,20 @@ Page Parser Store API:
 
 This is the fallback path for stores without an official public API. It parses public store pages and returns product candidates with source URLs for user review. It does not bypass checkout, submit orders, or pay automatically.
 
+Browser Session Store Automation API:
+
+- `GET /store-adapters/browser-session/status`
+- `POST /store-adapters/browser-session/automation-plan`
+
+This is the path for stores that require a real user session, including Yandex Eda, Yandex Go, Pyaterochka, and Magnit. The intended implementation is a Playwright-controlled local browser profile where the user signs in directly with the provider once. FoodPilot may then search products and assemble the provider cart in that user-owned session.
+
+Hard limits:
+
+- FoodPilot must not store raw store passwords or card data.
+- FoodPilot must not bypass captcha, 3DS, SMS, or bank challenges.
+- External order submission requires fresh confirmation for that exact cart.
+- Automatic payment capture is blocked; payment remains inside the provider or bank flow.
+
 Real Store Redirect API:
 
 - `GET /external-stores/instacart/status`

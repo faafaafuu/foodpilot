@@ -36,6 +36,65 @@ export interface ParsedStoreSearchResponse {
   warnings: string[];
 }
 
+export type BrowserStoreAutomationProvider = 'yandex-eda' | 'yandex-go' | 'pyaterochka' | 'magnit';
+
+export type BrowserStoreAutomationMode =
+  | 'USER_OWNED_BROWSER_SESSION'
+  | 'DIRECT_PAGE_PARSE'
+  | 'OFFICIAL_REDIRECT';
+
+export type BrowserStoreAutomationCapabilityStatus =
+  | 'AVAILABLE'
+  | 'REQUIRES_PLAYWRIGHT_SESSION'
+  | 'REQUIRES_USER_CONFIRMATION'
+  | 'BLOCKED';
+
+export interface BrowserStoreAutomationCapability {
+  code: string;
+  status: BrowserStoreAutomationCapabilityStatus;
+  description: string;
+}
+
+export interface BrowserStoreAutomationProviderStatus {
+  provider: BrowserStoreAutomationProvider;
+  displayName: string;
+  mode: BrowserStoreAutomationMode;
+  sessionPersistence: 'LOCAL_BROWSER_PROFILE' | 'NONE';
+  capabilities: BrowserStoreAutomationCapability[];
+  hardLimits: string[];
+}
+
+export interface BrowserStoreAutomationStatusResponse {
+  providers: BrowserStoreAutomationProviderStatus[];
+  globalRules: string[];
+}
+
+export interface BrowserStoreAutomationPlanStep {
+  order: number;
+  code: string;
+  actor: 'USER' | 'FOODPILOT' | 'STORE_PROVIDER';
+  description: string;
+  requiresFreshUserAction: boolean;
+}
+
+export interface BrowserStoreAutomationPlanResponse {
+  provider: BrowserStoreAutomationProvider;
+  requested: {
+    allowSearch: boolean;
+    allowCartAssembly: boolean;
+    allowOrderSubmission: boolean;
+    allowPayment: boolean;
+  };
+  allowed: {
+    canSearch: boolean;
+    canAssembleCart: boolean;
+    canSubmitOrder: boolean;
+    canPay: boolean;
+  };
+  steps: BrowserStoreAutomationPlanStep[];
+  warnings: string[];
+}
+
 export interface StoreAvailabilityResponse {
   productId: string;
   available: boolean;
