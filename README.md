@@ -2,7 +2,6 @@
 
 FoodPilot is a nutrition, calorie, grocery, and cart-preparation platform for simple home food and meal prep.
 
-The first MVP focuses on a user who wants to lose weight, prefers filling budget-friendly meals, likes lazy cabbage rolls and cold beet soup, and avoids eggs, porridge, and avocado.
 
 ## Monorepo
 
