@@ -59,6 +59,21 @@ describe('CartBuilderService', () => {
     expect(result.cart.requiresConfirmation).toBe(true);
     expect(result.cart.items.length).toBe(2);
   });
+
+  it('confirms a prepared cart without placing an external order', async () => {
+    const prisma = createPrismaMock();
+    const service = new CartBuilderService(
+      prisma as unknown as PrismaService,
+      createGroceryListsServiceMock() as unknown as GroceryListsService,
+    );
+
+    await service.buildCartFromGroceryList('list-1', { storeCode: 'mock-store' });
+    const cart = await service.confirmCart('cart-1');
+
+    expect(cart.status).toBe('CONFIRMED');
+    expect(cart.requiresConfirmation).toBe(false);
+    expect(cart.items.length).toBe(2);
+  });
 });
 
 function createGroceryListsServiceMock() {
@@ -157,8 +172,7 @@ function createPrismaMock() {
     cart: {
       create: jest.fn().mockResolvedValue(cart),
       update: jest.fn().mockImplementation(({ data }) => {
-        cart.subtotalCents = data.subtotalCents;
-        cart.requiresConfirmation = data.requiresConfirmation;
+        Object.assign(cart, data);
         return Promise.resolve(cart);
       }),
       findUnique: jest.fn().mockImplementation(() =>

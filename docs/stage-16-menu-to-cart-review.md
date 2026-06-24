@@ -30,6 +30,7 @@ Related files inspected before implementation:
 ## API Route
 
 - `POST /cart-builder/menu/cart`
+- `POST /cart-builder/carts/:cartId/confirm`
 
 The endpoint accepts:
 
@@ -43,11 +44,14 @@ It returns:
 - generated grocery list;
 - prepared cart with selected store products, replacements, package quantities, subtotal, and `requiresConfirmation=true`.
 
+The confirmation endpoint marks the FoodPilot cart as confirmed after user review. It does not place, pay for, or submit an external store order.
+
 ## Safety
 
 - No order is submitted.
 - No payment is attempted.
-- The cart remains `READY_FOR_CONFIRMATION`.
+- Newly built carts remain `READY_FOR_CONFIRMATION` until explicit user confirmation.
+- The cart can only move to `CONFIRMED` through the explicit confirmation endpoint.
 - The flow uses the existing grocery-list and cart-builder services instead of coupling store adapters to recipes.
 
 ## Verification

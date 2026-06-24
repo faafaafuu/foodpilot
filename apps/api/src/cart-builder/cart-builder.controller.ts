@@ -33,4 +33,12 @@ export class CartBuilderController {
   getCart(@Param('cartId') cartId: string): Promise<StoreCartResponse> {
     return this.cartBuilderService.getCart(cartId);
   }
+
+  @Post('carts/:cartId/confirm')
+  @ApiOkResponse({
+    description: 'Confirm a prepared cart inside FoodPilot without placing an external order.',
+  })
+  confirmCart(@Param('cartId') cartId: string): Promise<StoreCartResponse> {
+    return this.cartBuilderService.confirmCart(cartId);
+  }
 }

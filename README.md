@@ -2,7 +2,6 @@
 
 FoodPilot is a nutrition, calorie, grocery, and cart-preparation platform for simple home food and meal prep.
 
-
 ## Monorepo
 
 ```text
@@ -106,6 +105,7 @@ Cart Builder API:
 - `POST /cart-builder/menu/cart`
 - `POST /cart-builder/grocery-lists/:groceryListId/cart`
 - `GET /cart-builder/carts/:cartId`
+- `POST /cart-builder/carts/:cartId/confirm`
 
 One-shot menu to cart example:
 
@@ -126,6 +126,8 @@ curl -X POST http://localhost:3001/cart-builder/menu/cart \
 ```
 
 The response includes the generated grocery list and a cart with `READY_FOR_CONFIRMATION` status.
+
+Confirming a cart marks the FoodPilot cart as `CONFIRMED`; it still does not submit payment or place an external store order.
 
 AI Assistant API:
 

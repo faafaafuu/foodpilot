@@ -138,6 +138,40 @@ export class CartBuilderService {
     };
   }
 
+  async confirmCart(cartId: string): Promise<StoreCartResponse> {
+    const cart = await this.prisma.cart.findUnique({
+      where: { id: cartId },
+      include: { items: true },
+    });
+
+    if (!cart) {
+      throw new NotFoundException(`Cart ${cartId} was not found`);
+    }
+
+    if (cart.status === 'CONFIRMED') {
+      return this.getCart(cart.id);
+    }
+
+    if (cart.status !== 'READY_FOR_CONFIRMATION') {
+      throw new BadRequestException('Only carts ready for confirmation can be confirmed.');
+    }
+
+    if (cart.items.length === 0) {
+      throw new BadRequestException('Cannot confirm an empty cart.');
+    }
+
+    await this.prisma.cart.update({
+      where: { id: cart.id },
+      data: {
+        status: 'CONFIRMED',
+        requiresConfirmation: false,
+        confirmedAt: new Date(),
+      },
+    });
+
+    return this.getCart(cart.id);
+  }
+
   private async getGroceryList(groceryListId: string): Promise<GroceryListWithItems> {
     const groceryList = await this.prisma.groceryList.findUnique({
       where: { id: groceryListId },
