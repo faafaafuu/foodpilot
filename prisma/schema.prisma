@@ -78,6 +78,17 @@ enum CartStatus {
   ABANDONED
 }
 
+enum PaymentProvider {
+  MOCK
+}
+
+enum PaymentIntentStatus {
+  REQUIRES_CONFIRMATION
+  CAPTURED
+  CANCELED
+  FAILED
+}
+
 model User {
   id           String        @id @default(uuid()) @db.Uuid
   email        String?       @unique
@@ -318,6 +329,7 @@ model Cart {
   store                Store        @relation(fields: [storeId], references: [id], onDelete: Restrict)
   groceryList          GroceryList? @relation(fields: [groceryListId], references: [id], onDelete: SetNull)
   items                CartItem[]
+  paymentIntents       PaymentIntent[]
 
   @@index([userId, status])
   @@index([storeId])
@@ -342,4 +354,23 @@ model CartItem {
 
   @@index([cartId])
   @@index([storeProductId])
+}
+
+model PaymentIntent {
+  id                String              @id @default(uuid()) @db.Uuid
+  cartId            String              @db.Uuid
+  provider          PaymentProvider     @default(MOCK)
+  providerPaymentId String
+  status            PaymentIntentStatus @default(REQUIRES_CONFIRMATION)
+  amountCents       Int
+  currency          String              @default("RUB")
+  confirmationUrl   String?
+  safetyNotes       String[]            @default([])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  confirmedAt       DateTime?
+  cart              Cart                @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerPaymentId])
+  @@index([cartId, status])
 }

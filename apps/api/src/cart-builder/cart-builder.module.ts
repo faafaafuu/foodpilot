@@ -8,5 +8,6 @@ import { CartBuilderService } from './cart-builder.service';
   imports: [PrismaModule, GroceryListsModule],
   controllers: [CartBuilderController],
   providers: [CartBuilderService],
+  exports: [CartBuilderService],
 })
 export class CartBuilderModule {}

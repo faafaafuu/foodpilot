@@ -129,6 +129,14 @@ The response includes the generated grocery list and a cart with `READY_FOR_CONF
 
 Confirming a cart marks the FoodPilot cart as `CONFIRMED`; it still does not submit payment or place an external store order.
 
+Checkout API:
+
+- `GET /checkout/carts/:cartId/review`
+- `POST /checkout/carts/:cartId/payment-intents`
+- `POST /checkout/payment-intents/:paymentIntentId/confirm`
+
+The current checkout implementation uses `MockPaymentAdapter`. It creates and captures mock payment intents for confirmed carts only; no real card data, money movement, or external store order is handled by FoodPilot.
+
 AI Assistant API:
 
 - `POST /ai/:userId/messages`
@@ -200,6 +208,7 @@ Services:
 14. Performance pass. Done.
 15. Final self-review. Done.
 16. One-shot menu-to-cart preparation endpoint. Done.
+17. Checkout and mock payment intent flow. Done.
 
 ## Safety Rules
 
@@ -207,3 +216,4 @@ Services:
 - Secrets belong in `.env`, not in source code.
 - Logs must not contain tokens, payment data, browser sessions, or sensitive personal data.
 - DTO validation and rate limiting are required before public API exposure.
+- Real payments must be delegated to PCI-compliant providers through adapters; FoodPilot must not store raw card data.
