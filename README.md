@@ -104,8 +104,29 @@ Mock Store Adapter API:
 
 Cart Builder API:
 
+- `POST /cart-builder/menu/cart`
 - `POST /cart-builder/grocery-lists/:groceryListId/cart`
 - `GET /cart-builder/carts/:cartId`
+
+One-shot menu to cart example:
+
+```bash
+curl -X POST http://localhost:3001/cart-builder/menu/cart \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "userId": "USER_ID",
+    "menu": {
+      "title": "Меню на неделю",
+      "storeCode": "mock-store",
+      "dishes": [
+        { "slug": "lazy-cabbage-rolls", "servings": 8 },
+        { "slug": "cold-beet-soup", "servings": 4 }
+      ]
+    }
+  }'
+```
+
+The response includes the generated grocery list and a cart with `READY_FOR_CONFIRMATION` status.
 
 AI Assistant API:
 
@@ -177,6 +198,7 @@ Services:
 13. Security pass. Done.
 14. Performance pass. Done.
 15. Final self-review. Done.
+16. One-shot menu-to-cart preparation endpoint. Done.
 
 ## Safety Rules
 

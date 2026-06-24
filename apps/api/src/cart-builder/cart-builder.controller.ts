@@ -1,13 +1,23 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { StoreCartResponse } from '../store-adapters/store-adapter.types';
+import { MenuCartBuildResponse } from './cart-builder.types';
 import { CartBuilderService } from './cart-builder.service';
 import { BuildCartDto } from './dto/build-cart.dto';
+import { BuildCartFromMenuRequestDto } from './dto/build-cart-from-menu.dto';
 
 @ApiTags('cart-builder')
 @Controller('cart-builder')
 export class CartBuilderController {
   constructor(private readonly cartBuilderService: CartBuilderService) {}
+
+  @Post('menu/cart')
+  @ApiCreatedResponse({
+    description: 'Generated grocery list and prepared cart from selected menu.',
+  })
+  buildCartFromMenu(@Body() dto: BuildCartFromMenuRequestDto): Promise<MenuCartBuildResponse> {
+    return this.cartBuilderService.buildCartFromMenu(dto);
+  }
 
   @Post('grocery-lists/:groceryListId/cart')
   @ApiCreatedResponse({ description: 'Prepared cart from a grocery list.' })

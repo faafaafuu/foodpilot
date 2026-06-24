@@ -1,11 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { CartBuilderService } from '../src/cart-builder/cart-builder.service';
+import { GroceryListsService } from '../src/grocery-lists/grocery-lists.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('CartBuilderService', () => {
   it('builds a confirmation-required cart from grocery list items', async () => {
     const prisma = createPrismaMock();
-    const service = new CartBuilderService(prisma as unknown as PrismaService);
+    const service = new CartBuilderService(
+      prisma as unknown as PrismaService,
+      createGroceryListsServiceMock() as unknown as GroceryListsService,
+    );
 
     const cart = await service.buildCartFromGroceryList('list-1', { storeCode: 'mock-store' });
 
@@ -27,7 +31,51 @@ describe('CartBuilderService', () => {
       }),
     ]);
   });
+
+  it('generates a grocery list and builds a confirmation-required cart from menu dishes', async () => {
+    const prisma = createPrismaMock();
+    const groceryListsService = createGroceryListsServiceMock();
+    const service = new CartBuilderService(
+      prisma as unknown as PrismaService,
+      groceryListsService as unknown as GroceryListsService,
+    );
+
+    const result = await service.buildCartFromMenu({
+      userId: 'user-1',
+      menu: {
+        title: 'Меню на неделю',
+        storeCode: 'mock-store',
+        dishes: [{ slug: 'lazy-cabbage-rolls', servings: 8 }],
+      },
+    });
+
+    expect(groceryListsService.generateFromMenu).toHaveBeenCalledWith('user-1', {
+      title: 'Меню на неделю',
+      storeCode: 'mock-store',
+      dishes: [{ slug: 'lazy-cabbage-rolls', servings: 8 }],
+    });
+    expect(result.groceryList.id).toBe('list-1');
+    expect(result.cart.status).toBe('READY_FOR_CONFIRMATION');
+    expect(result.cart.requiresConfirmation).toBe(true);
+    expect(result.cart.items.length).toBe(2);
+  });
 });
+
+function createGroceryListsServiceMock() {
+  return {
+    generateFromMenu: jest.fn().mockResolvedValue({
+      id: 'list-1',
+      userId: 'user-1',
+      title: 'Меню на неделю',
+      status: 'READY',
+      sourceMenu: {
+        dishes: [{ slug: 'lazy-cabbage-rolls', servings: 8 }],
+      },
+      totalEstimatedCents: 102000,
+      items: [],
+    }),
+  };
+}
 
 function createPrismaMock() {
   const cart = {

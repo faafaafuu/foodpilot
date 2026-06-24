@@ -7,9 +7,12 @@ import {
   Store,
   StoreProduct,
 } from '@prisma/client';
+import { GroceryListsService } from '../grocery-lists/grocery-lists.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StoreCartResponse } from '../store-adapters/store-adapter.types';
 import { BuildCartDto } from './dto/build-cart.dto';
+import { BuildCartFromMenuRequestDto } from './dto/build-cart-from-menu.dto';
+import { MenuCartBuildResponse } from './cart-builder.types';
 
 type GroceryListItemWithDecimal = GroceryListItem & {
   quantity: Prisma.Decimal;
@@ -26,7 +29,19 @@ type StoreProductWithDecimal = StoreProduct & {
 
 @Injectable()
 export class CartBuilderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly groceryListsService: GroceryListsService,
+  ) {}
+
+  async buildCartFromMenu(dto: BuildCartFromMenuRequestDto): Promise<MenuCartBuildResponse> {
+    const groceryList = await this.groceryListsService.generateFromMenu(dto.userId, dto.menu);
+    const cart = await this.buildCartFromGroceryList(groceryList.id, {
+      storeCode: dto.menu.storeCode,
+    });
+
+    return { groceryList, cart };
+  }
 
   async buildCartFromGroceryList(
     groceryListId: string,
