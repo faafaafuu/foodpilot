@@ -147,6 +147,8 @@ Web:
 npm run dev:web
 ```
 
+The web dashboard is an interactive cockpit. It can create the demo profile, build a mock-store cart from selected dishes, confirm the cart, create and capture a mock payment intent, chat with the local AI adapter, and use browser voice input where supported.
+
 Mobile:
 
 ```bash
@@ -209,6 +211,7 @@ Services:
 15. Final self-review. Done.
 16. One-shot menu-to-cart preparation endpoint. Done.
 17. Checkout and mock payment intent flow. Done.
+18. Interactive web cockpit with cart, checkout, chat, and browser voice input. Done.
 
 ## Safety Rules
 

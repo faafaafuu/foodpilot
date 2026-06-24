@@ -20,15 +20,34 @@ body {
   margin: 0;
 }
 
+button,
+input {
+  font: inherit;
+}
+
 button {
   background: #1f6b45;
   border: 0;
   border-radius: 6px;
   color: #ffffff;
   cursor: pointer;
-  font: inherit;
   font-weight: 800;
-  padding: 12px 14px;
+  min-height: 44px;
+  padding: 11px 14px;
+}
+
+button:disabled {
+  background: #a9b8aa;
+  cursor: not-allowed;
+}
+
+input {
+  background: #ffffff;
+  border: 1px solid #cfdacf;
+  border-radius: 6px;
+  color: #162019;
+  min-height: 44px;
+  padding: 10px 12px;
   width: 100%;
 }
 
@@ -40,9 +59,10 @@ button {
 .topbar {
   align-items: center;
   display: flex;
+  gap: 18px;
   justify-content: space-between;
-  margin: 0 auto 20px;
-  max-width: 1280px;
+  margin: 0 auto 16px;
+  max-width: 1320px;
 }
 
 .eyebrow {
@@ -67,16 +87,38 @@ h1 {
 
 h2 {
   font-size: 18px;
-  margin-bottom: 14px;
 }
 
-.apiStatus {
-  background: #dcefe3;
-  border-radius: 6px;
-  color: #1f4e35;
-  font-size: 13px;
+.apiControl {
+  color: #516352;
+  display: grid;
+  font-size: 12px;
   font-weight: 800;
-  padding: 10px 12px;
+  gap: 5px;
+  min-width: 320px;
+}
+
+.heroBand {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dce5d8;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr 220px;
+  margin: 0 auto 14px;
+  max-width: 1320px;
+  padding: 16px;
+}
+
+.heroBand h2 {
+  margin-bottom: 6px;
+}
+
+.heroBand p {
+  color: #536354;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .grid {
@@ -84,7 +126,7 @@ h2 {
   gap: 14px;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   margin: 0 auto;
-  max-width: 1280px;
+  max-width: 1320px;
 }
 
 .panel {
@@ -102,21 +144,49 @@ h2 {
 }
 
 .menuPanel,
-.groceryPanel {
-  grid-column: span 6;
-}
-
+.groceryPanel,
 .recipePanel,
 .debugPanel {
   grid-column: span 6;
+}
+
+.chatPanel {
+  grid-column: span 8;
+}
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.stateText {
+  color: #526252;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.statusDot {
+  background: #c6d1c5;
+  border-radius: 999px;
+  display: block;
+  height: 12px;
+  width: 12px;
+}
+
+.statusDot.active {
+  background: #1f9a57;
 }
 
 .metric {
   align-items: center;
   border-bottom: 1px solid #edf1ea;
   display: flex;
-  justify-content: space-between;
   gap: 16px;
+  justify-content: space-between;
   padding: 10px 0;
 }
 
@@ -130,61 +200,49 @@ h2 {
   color: #162019;
   font-size: 14px;
   text-align: right;
+  word-break: break-word;
 }
 
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.profilePanel button {
   margin-top: 14px;
+  width: 100%;
 }
 
-.tags span {
-  background: #e5f0e8;
-  border-radius: 6px;
-  color: #1f6b45;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 7px 9px;
+.dishPicker {
+  display: grid;
+  gap: 10px;
 }
 
-.tags.muted span {
-  background: #f1e7e2;
-  color: #8a4c38;
+.dishPicker label {
+  align-items: center;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 18px 1fr;
+  padding: 10px;
 }
 
-.calorieNumber {
-  color: #1f6b45;
-  font-size: 52px;
-  font-weight: 900;
-  line-height: 1;
+.dishPicker input {
+  min-height: 18px;
+  width: 18px;
 }
 
-.hint {
-  color: #5f6e61;
+.dishPicker span {
   font-size: 14px;
-  font-weight: 700;
-  margin-top: 4px;
+  font-weight: 800;
 }
 
-.progress {
-  background: #e6eadf;
-  border-radius: 6px;
-  height: 12px;
-  margin: 18px 0 6px;
-  overflow: hidden;
-}
-
-.progress span {
-  background: #1f6b45;
-  display: block;
-  height: 100%;
-  width: 33%;
+.buttonStack {
+  display: grid;
+  gap: 10px;
 }
 
 .table {
   display: grid;
   gap: 8px;
+  margin-top: 14px;
 }
 
 .tableRow {
@@ -193,7 +251,7 @@ h2 {
   border-radius: 8px;
   display: grid;
   gap: 10px;
-  grid-template-columns: 64px 1fr 92px;
+  grid-template-columns: 92px 1fr 128px;
   padding: 10px;
 }
 
@@ -210,26 +268,128 @@ h2 {
   font-weight: 800;
 }
 
-ol {
-  margin: 0;
-  padding-left: 22px;
+.cartItems {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
 }
 
-li {
-  color: #1d271f;
-  line-height: 1.55;
-  margin: 6px 0;
+.cartItem {
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
 }
 
-@media (max-width: 900px) {
+.cartItem strong {
+  font-size: 14px;
+}
+
+.cartItem span,
+.cartItem small {
+  color: #617063;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notice {
+  background: #eef7ef;
+  border: 1px solid #d8e8d9;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+}
+
+.notice p,
+.emptyText {
+  color: #536354;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.quickMessages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ghostButton {
+  background: #eef3eb;
+  color: #1f5f3f;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 8px 10px;
+  width: auto;
+}
+
+.smallButton {
+  min-height: 36px;
+  padding: 8px 12px;
+  width: auto;
+}
+
+.chatLog {
+  background: #f7faf4;
+  border: 1px solid #e1e8dc;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  min-height: 220px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.message {
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 86%;
+  padding: 10px 12px;
+}
+
+.message.assistant {
+  background: #ffffff;
+  border: 1px solid #dfe8db;
+  justify-self: start;
+}
+
+.message.user {
+  background: #1f6b45;
+  color: #ffffff;
+  justify-self: end;
+}
+
+.chatForm {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 140px;
+  margin-top: 12px;
+}
+
+@media (max-width: 980px) {
   .dashboard {
     padding: 16px;
   }
 
+  .topbar,
+  .heroBand {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
-    align-items: flex-start;
     flex-direction: column;
-    gap: 10px;
+  }
+
+  .apiControl {
+    min-width: 0;
+    width: 100%;
   }
 
   .profilePanel,
@@ -238,15 +398,20 @@ li {
   .menuPanel,
   .groceryPanel,
   .recipePanel,
-  .debugPanel {
+  .debugPanel,
+  .chatPanel {
     grid-column: 1 / -1;
   }
 
   .tableRow {
-    grid-template-columns: 52px 1fr;
+    grid-template-columns: 80px 1fr;
   }
 
   .tableRow span:last-child {
     grid-column: 2;
+  }
+
+  .chatForm {
+    grid-template-columns: 1fr;
   }
 }
