@@ -47,4 +47,12 @@ export class CheckoutController {
   ): Promise<PaymentIntentResponse> {
     return this.checkoutService.confirmPaymentIntent(paymentIntentId);
   }
+
+  @Post('payment-intents/:paymentIntentId/sberpay-status')
+  @ApiOkResponse({ description: 'Sync a SberPay payment intent with provider order status.' })
+  syncSberPayPaymentIntent(
+    @Param('paymentIntentId') paymentIntentId: string,
+  ): Promise<PaymentIntentResponse> {
+    return this.checkoutService.syncSberPayPaymentIntent(paymentIntentId);
+  }
 }

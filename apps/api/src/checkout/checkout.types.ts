@@ -34,3 +34,13 @@ export interface SberPayStatusResponse {
   missingEnv: string[];
   checkoutBehavior: 'REDIRECT_TO_SBER';
 }
+
+export interface SberPayPaymentStatusResponse {
+  provider: 'sberpay';
+  providerPaymentId: string;
+  orderStatus: number | null;
+  paymentIntentStatus: PaymentIntentStatus;
+  paid: boolean;
+  actionCode: number | null;
+  actionCodeDescription: string | null;
+}

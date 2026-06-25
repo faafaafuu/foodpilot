@@ -1,7 +1,7 @@
 import { BadGatewayException, BadRequestException, Injectable } from '@nestjs/common';
 import { CreateSberPayPaymentDto } from './dto/create-sberpay-payment.dto';
 import { CreatePaymentIntentInput, ProviderPaymentIntent } from './payment-adapter.types';
-import { SberPayStatusResponse } from './checkout.types';
+import { SberPayPaymentStatusResponse, SberPayStatusResponse } from './checkout.types';
 
 interface SberPayRegisterResponse {
   errorCode?: string;
@@ -12,6 +12,17 @@ interface SberPayRegisterResponse {
     sbolDeepLink?: string;
     sbolBankInvoiceId?: string;
   };
+}
+
+interface SberPayOrderStatusExtendedResponse {
+  errorCode?: string;
+  errorMessage?: string;
+  orderStatus?: number;
+  actionCode?: number;
+  actionCodeDescription?: string;
+  amount?: number;
+  currency?: string;
+  orderNumber?: string;
 }
 
 const REQUIRED_ENV = [
@@ -39,6 +50,7 @@ export class SberPayPaymentAdapter {
         'redirect_checkout',
         'sberpay_payment_page',
         'provider_side_confirmation',
+        'order_status_extended',
       ],
       requiredEnv: REQUIRED_ENV,
       missingEnv,
@@ -87,7 +99,7 @@ export class SberPayPaymentAdapter {
       );
     }
 
-    const data = parseSberPayResponse(responseText);
+    const data = parseSberPayResponse<SberPayRegisterResponse>(responseText);
 
     if (data.errorCode && data.errorCode !== '0') {
       throw new BadGatewayException(
@@ -102,6 +114,52 @@ export class SberPayPaymentAdapter {
     return {
       providerPaymentId: data.orderId,
       confirmationUrl: data.formUrl,
+    };
+  }
+
+  async getPaymentStatus(providerPaymentId: string): Promise<SberPayPaymentStatusResponse> {
+    this.assertProductionReady();
+
+    const payload = {
+      userName: this.requiredEnv('SBERPAY_USER_NAME'),
+      password: this.requiredEnv('SBERPAY_PASSWORD'),
+      orderId: providerPaymentId,
+      language: 'ru',
+    };
+    const response = await fetch(this.orderStatusUrl().toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      throw new BadGatewayException(
+        `SberPay getOrderStatusExtended.do failed: ${response.status} ${responseText.slice(
+          0,
+          500,
+        )}`,
+      );
+    }
+
+    const data = parseSberPayResponse<SberPayOrderStatusExtendedResponse>(responseText);
+
+    if (data.errorCode && data.errorCode !== '0') {
+      throw new BadGatewayException(
+        `SberPay rejected status request: ${data.errorCode} ${data.errorMessage ?? ''}`.trim(),
+      );
+    }
+
+    const paymentIntentStatus = mapSberPayOrderStatus(data.orderStatus);
+
+    return {
+      provider: 'sberpay',
+      providerPaymentId,
+      orderStatus: data.orderStatus ?? null,
+      paymentIntentStatus,
+      paid: paymentIntentStatus === 'CAPTURED',
+      actionCode: data.actionCode ?? null,
+      actionCodeDescription: data.actionCodeDescription ?? null,
     };
   }
 
@@ -149,6 +207,10 @@ export class SberPayPaymentAdapter {
     return new URL('register.do', `${this.baseUrl().replace(/\/+$/, '')}/`);
   }
 
+  private orderStatusUrl(): URL {
+    return new URL('getOrderStatusExtended.do', `${this.baseUrl().replace(/\/+$/, '')}/`);
+  }
+
   private baseUrl(): string {
     return (
       process.env.SBERPAY_API_BASE_URL ?? 'https://ecommerce.sberbank.ru/ecomm/gw/partner/api/v1'
@@ -176,9 +238,9 @@ function normalizePhone(phone: string | undefined): string | undefined {
   return phone?.replace(/^\+/, '');
 }
 
-function parseSberPayResponse(responseText: string): SberPayRegisterResponse {
+function parseSberPayResponse<T>(responseText: string): T {
   try {
-    return JSON.parse(responseText) as SberPayRegisterResponse;
+    return JSON.parse(responseText) as T;
   } catch {
     throw new BadGatewayException(
       `SberPay returned non-JSON response: ${responseText.slice(0, 500)}`,
@@ -196,4 +258,22 @@ function dropEmpty<T extends Record<string, unknown>>(input: T): Record<string, 
 
 function looksLikeTestGateway(baseUrl: string): boolean {
   return /ecomtest|ecomift|rbsuat|sandbox|test/i.test(baseUrl);
+}
+
+function mapSberPayOrderStatus(
+  orderStatus: number | undefined,
+): SberPayPaymentStatusResponse['paymentIntentStatus'] {
+  if (orderStatus === 2) {
+    return 'CAPTURED';
+  }
+
+  if (orderStatus === 3 || orderStatus === 4) {
+    return 'CANCELED';
+  }
+
+  if (orderStatus === 6) {
+    return 'FAILED';
+  }
+
+  return 'REQUIRES_CONFIRMATION';
 }

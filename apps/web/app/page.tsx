@@ -479,6 +479,36 @@ export default function HomePage() {
     }
   }
 
+  async function syncSberPayIntent(currentIntent = sberPayIntent): Promise<void> {
+    if (!currentIntent) {
+      setStatus('Сначала создай СберПэй оплату');
+      return;
+    }
+
+    const syncedIntent = await runAction('Проверяю оплату СберПэй', () =>
+      apiFetch<PaymentIntentResponse>(
+        `/checkout/payment-intents/${currentIntent.id}/sberpay-status`,
+        {
+          method: 'POST',
+        },
+      ),
+    );
+
+    if (syncedIntent) {
+      setSberPayIntent(syncedIntent);
+      setChat((messages) => [
+        ...messages,
+        {
+          role: 'assistant',
+          text:
+            syncedIntent.status === 'CAPTURED'
+              ? 'СберПэй подтвердил оплату. Локальный платёж помечен как оплаченный.'
+              : `СберПэй статус: ${statusLabel(syncedIntent.status)}.`,
+        },
+      ]);
+    }
+  }
+
   async function runFullFlow(): Promise<void> {
     const response = await buildCart();
     if (!response) {
@@ -758,10 +788,14 @@ export default function HomePage() {
               <p className="sectionLabel">Payment</p>
               <h2>Checkout</h2>
             </div>
-            <StatusBadge value={sberPayIntent ? 'SBERPAY_READY' : 'NOT_CREATED'} />
+            <StatusBadge value={sberPayIntent?.status ?? 'NOT_CREATED'} />
           </div>
           <Metric label="Корзина" value={cart?.status ?? 'нет'} />
           <Metric label="Оплата" value={sberPayIntent ? 'СберПэй' : 'не создана'} />
+          <Metric
+            label="Статус оплаты"
+            value={sberPayIntent ? statusLabel(sberPayIntent.status) : '-'}
+          />
           <Metric label="Сумма" value={cart ? money(cart.subtotalCents) : '-'} />
           {sberPayIntent ? (
             <div className="notice">
@@ -793,6 +827,14 @@ export default function HomePage() {
             onClick={() => void createSberPayIntent()}
           >
             Создать СберПэй ссылку
+          </button>
+          <button
+            className="secondaryButton fullWidth"
+            disabled={Boolean(busyAction) || !sberPayIntent || sberPayIntent.status === 'CAPTURED'}
+            type="button"
+            onClick={() => void syncSberPayIntent()}
+          >
+            Проверить оплату СберПэй
           </button>
         </article>
 
@@ -892,6 +934,15 @@ export default function HomePage() {
               Создать СберПэй
             </button>
             <button
+              disabled={
+                Boolean(busyAction) || !sberPayIntent || sberPayIntent.status === 'CAPTURED'
+              }
+              type="button"
+              onClick={() => void syncSberPayIntent()}
+            >
+              Проверить оплату
+            </button>
+            <button
               className="secondaryButton"
               disabled={Boolean(busyAction)}
               type="button"
@@ -940,6 +991,7 @@ export default function HomePage() {
           <Metric label="Instacart" value={instacartStatus?.mode ?? '-'} />
           <Metric label="SberPay" value={sberPayStatus?.mode ?? '-'} />
           <Metric label="Payment" value={sberPayIntent?.id ?? '-'} />
+          <Metric label="Payment status" value={sberPayIntent?.status ?? '-'} />
         </article>
       </section>
     </main>
@@ -1025,15 +1077,21 @@ function statusClass(value: string): string {
     return 'warning';
   }
 
+  if (value === 'FAILED' || value === 'CANCELED') {
+    return 'error';
+  }
+
   return 'neutral';
 }
 
 function statusLabel(value: string): string {
   const labels: Record<string, string> = {
     CAPTURED: 'оплачено',
+    CANCELED: 'отменено',
     CONFIRMED: 'подтверждено',
     EMPTY: 'пусто',
     EXTERNAL_CHECKOUT: 'готово',
+    FAILED: 'ошибка',
     NOT_CREATED: 'нет',
     READY_FOR_CONFIRMATION: 'нужно подтвердить',
     REQUIRES_CONFIRMATION: 'нужно подтвердить',

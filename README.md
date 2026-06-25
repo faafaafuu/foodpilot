@@ -190,6 +190,7 @@ Checkout API:
 - `POST /checkout/payment-intents/:paymentIntentId/confirm`
 - `GET /checkout/sberpay/status`
 - `POST /checkout/carts/:cartId/sberpay-payment-intents`
+- `POST /checkout/payment-intents/:paymentIntentId/sberpay-status`
 
 The local mock checkout remains available for development. Production SberPay checkout uses Sber's payment gateway `register.do` flow and returns a provider payment page URL. FoodPilot stores only payment-intent metadata; card data and confirmation stay inside Sber.
 
@@ -203,6 +204,8 @@ Production SberPay requires:
 - `SBERPAY_FAIL_URL=<public failure url>`
 
 FoodPilot intentionally blocks SberPay payment creation if production credentials are missing or the gateway URL looks like a sandbox/test endpoint.
+
+After the user returns from SberPay, FoodPilot can poll Sber with `getOrderStatusExtended.do` and reconcile the local payment intent status. Paid Sber orders become `CAPTURED`; declined, cancelled, and refunded orders become terminal local statuses.
 
 AI Assistant API:
 
@@ -285,6 +288,7 @@ Services:
 22. Browser-session store automation policy. Done.
 23. Playwright browser store sessions. Done.
 24. Production-gated SberPay redirect checkout and web panel. Done.
+25. SberPay status polling and local payment reconciliation. Done.
 
 ## Safety Rules
 

@@ -291,6 +291,11 @@ h2 {
   color: #286a52;
 }
 
+.statusBadge.error {
+  background: #ffe8e5;
+  color: #9b2417;
+}
+
 .metric {
   align-items: center;
   border-bottom: 1px solid #edf1f3;

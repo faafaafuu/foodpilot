@@ -61,6 +61,24 @@ describe('CheckoutService', () => {
     );
   });
 
+  it('syncs a paid SberPay payment intent from provider status', async () => {
+    const prisma = createPrismaMock({ cartStatus: 'CONFIRMED' });
+    const sberPayAdapter = createSberPayPaymentAdapter({
+      paymentIntentStatus: 'CAPTURED',
+      orderStatus: 2,
+      actionCode: 0,
+    });
+    const service = createService(prisma, sberPayAdapter);
+    const paymentIntent = await service.createSberPayPaymentIntent('cart-1');
+
+    const syncedIntent = await service.syncSberPayPaymentIntent(paymentIntent.id);
+
+    expect(syncedIntent.status).toBe('CAPTURED');
+    expect(syncedIntent.confirmedAt).toBeInstanceOf(Date);
+    expect(syncedIntent.safetyNotes).toContain('SberPay status sync: orderStatus=2, actionCode=0.');
+    expect(sberPayAdapter.getPaymentStatus).toHaveBeenCalledWith('sber-order-1');
+  });
+
   it('returns checkout review warnings for carts that are not ready for payment', async () => {
     const prisma = createPrismaMock({ cartStatus: 'READY_FOR_CONFIRMATION' });
     const service = createService(prisma);
@@ -112,7 +130,13 @@ function createMockPaymentAdapter() {
   };
 }
 
-function createSberPayPaymentAdapter() {
+function createSberPayPaymentAdapter(
+  status: {
+    paymentIntentStatus?: 'REQUIRES_CONFIRMATION' | 'CAPTURED' | 'CANCELED' | 'FAILED';
+    orderStatus?: number;
+    actionCode?: number;
+  } = {},
+) {
   return {
     getStatus: jest.fn().mockReturnValue({
       provider: 'sberpay',
@@ -129,6 +153,15 @@ function createSberPayPaymentAdapter() {
     createPaymentIntent: jest.fn().mockResolvedValue({
       providerPaymentId: 'sber-order-1',
       confirmationUrl: 'https://sber.test/pay',
+    }),
+    getPaymentStatus: jest.fn().mockResolvedValue({
+      provider: 'sberpay',
+      providerPaymentId: 'sber-order-1',
+      orderStatus: status.orderStatus ?? 0,
+      paymentIntentStatus: status.paymentIntentStatus ?? 'REQUIRES_CONFIRMATION',
+      paid: status.paymentIntentStatus === 'CAPTURED',
+      actionCode: status.actionCode ?? null,
+      actionCodeDescription: null,
     }),
   };
 }
@@ -167,7 +200,7 @@ function createPrismaMock(input: { cartStatus: 'READY_FOR_CONFIRMATION' | 'CONFI
     cartId: string;
     provider: 'MOCK' | 'SBERPAY';
     providerPaymentId: string;
-    status: 'REQUIRES_CONFIRMATION' | 'CAPTURED';
+    status: 'REQUIRES_CONFIRMATION' | 'CAPTURED' | 'CANCELED' | 'FAILED';
     amountCents: number;
     currency: string;
     confirmationUrl: string | null;

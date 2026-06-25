@@ -167,6 +167,49 @@ export class CheckoutService {
     return toPaymentIntentResponse(capturedIntent);
   }
 
+  async syncSberPayPaymentIntent(paymentIntentId: string): Promise<PaymentIntentResponse> {
+    const paymentIntent = await this.prisma.paymentIntent.findUnique({
+      where: { id: paymentIntentId },
+    });
+
+    if (!paymentIntent) {
+      throw new NotFoundException(`Payment intent ${paymentIntentId} was not found`);
+    }
+
+    if (paymentIntent.provider !== 'SBERPAY') {
+      throw new BadRequestException('Only SBERPAY payment intents can be synced through SberPay.');
+    }
+
+    if (paymentIntent.status === 'CAPTURED') {
+      return toPaymentIntentResponse(paymentIntent);
+    }
+
+    const providerStatus = await this.sberPayAdapter.getPaymentStatus(
+      paymentIntent.providerPaymentId,
+    );
+    const statusSyncNote = `SberPay status sync: orderStatus=${
+      providerStatus.orderStatus ?? 'unknown'
+    }, actionCode=${providerStatus.actionCode ?? 'unknown'}${
+      providerStatus.actionCodeDescription ? `, ${providerStatus.actionCodeDescription}` : ''
+    }.`;
+    const syncedIntent = await this.prisma.paymentIntent.update({
+      where: { id: paymentIntent.id },
+      data: {
+        status: providerStatus.paymentIntentStatus,
+        confirmedAt:
+          providerStatus.paymentIntentStatus === 'CAPTURED'
+            ? (paymentIntent.confirmedAt ?? new Date())
+            : paymentIntent.confirmedAt,
+        safetyNotes: [
+          ...paymentIntent.safetyNotes.filter((note) => !note.startsWith('SberPay status sync:')),
+          statusSyncNote,
+        ],
+      },
+    });
+
+    return toPaymentIntentResponse(syncedIntent);
+  }
+
   private async getCartWithItems(cartId: string): Promise<CartWithItems> {
     const cart = await this.prisma.cart.findUnique({
       where: { id: cartId },
