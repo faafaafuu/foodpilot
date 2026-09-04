@@ -17,6 +17,7 @@ import {
 } from './vkusvill-checkout.service';
 import { VkusvillCartResult, VkusvillCartService } from './vkusvill-cart.service';
 import { PageStoreAdapter } from './page-store.adapter';
+import { MultiStoreSearchResponse, StoreSearchService } from './store-search.service';
 import { ReplaceProductDto } from './dto/replace-product.dto';
 import { MockStoreAdapter } from './mock-store.adapter';
 import {
@@ -78,7 +79,21 @@ export class StoreAdaptersController {
 @ApiTags('store-adapters')
 @Controller('store-adapters/page')
 export class PageStoreAdaptersController {
-  constructor(private readonly pageStoreAdapter: PageStoreAdapter) {}
+  constructor(
+    private readonly pageStoreAdapter: PageStoreAdapter,
+    private readonly storeSearchService: StoreSearchService,
+  ) {}
+
+  @Get('search')
+  @ApiQuery({ name: 'query', required: true, type: String })
+  @ApiOkResponse({
+    description:
+      'Ищет товар во всех разобранных магазинах разом и отдаёт их полки порознь, ' +
+      'вместе с признаком, до какого магазина запрос дошёл.',
+  })
+  search(@Query('query') query = ''): Promise<MultiStoreSearchResponse> {
+    return this.storeSearchService.searchEverywhere(query);
+  }
 
   @Get('vkusvill/search')
   @ApiQuery({ name: 'query', required: true, type: String })
