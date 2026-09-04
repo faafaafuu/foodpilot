@@ -32,23 +32,58 @@ export class PageStoreAdapter {
     };
   }
 
+  /**
+   * Читает страницу магазина, повторяя попытку при обрыве связи.
+   *
+   * Повторы здесь не перестраховка. У человека за VPN связь с магазином рвётся
+   * через раз: замеры на живой машине дали одно успешное соединение из трёх,
+   * причём неудачное даже не устанавливалось — не «медленно», а «никак». Без
+   * повторов поиск проваливался бы чаще, чем работал, и человек считал бы
+   * сломанной программу, а не сеть.
+   *
+   * Повторяется только чтение страницы поиска: запрос идемпотентный, ничего не
+   * меняет, и лишний поход стоит секунды. Ответ магазина об ошибке не
+   * повторяется — если он сказал «нет», второй раз он скажет то же.
+   */
   private async fetchHtml(url: URL): Promise<string> {
-    const response = await fetch(url.toString(), {
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.7',
-        'User-Agent':
-          'Mozilla/5.0 (compatible; FoodPilot/0.1; +https://github.com/faafaafuu/foodpilot)',
-      },
-    });
+    const attempts = 3;
+    let lastError: unknown = null;
 
-    if (!response.ok) {
-      throw new BadGatewayException(
-        `Store page request failed: ${response.status} ${response.statusText}`,
-      );
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const response = await fetch(url.toString(), {
+          headers: {
+            Accept: 'text/html,application/xhtml+xml',
+            'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.7',
+            'User-Agent':
+              'Mozilla/5.0 (compatible; FoodPilot/0.1; +https://github.com/faafaafuu/foodpilot)',
+          },
+        });
+
+        if (!response.ok) {
+          throw new BadGatewayException(
+            `Store page request failed: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        return await response.text();
+      } catch (error) {
+        // Отказ самого магазина повторять незачем — он ответил осознанно.
+        if (error instanceof BadGatewayException) {
+          throw error;
+        }
+        lastError = error;
+
+        if (attempt < attempts) {
+          await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+        }
+      }
     }
 
-    return response.text();
+    const reason = lastError instanceof Error ? lastError.message : String(lastError);
+    throw new BadGatewayException(
+      `Не удалось достучаться до страницы магазина за ${attempts} попытки: ${reason}`,
+    );
   }
 }
 
