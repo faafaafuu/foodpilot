@@ -5,6 +5,8 @@ import { BrowserStoreAutomationPolicyService } from './browser-store-automation-
 import { BrowserStoreSessionService } from './browser-store-session.service';
 import { CreateBrowserAutomationPlanDto } from './dto/create-browser-automation-plan.dto';
 import { StartBrowserStoreSessionDto } from './dto/start-browser-store-session.dto';
+import { VkusvillCartDto } from './dto/vkusvill-cart.dto';
+import { VkusvillCartResult, VkusvillCartService } from './vkusvill-cart.service';
 import { PageStoreAdapter } from './page-store.adapter';
 import { ReplaceProductDto } from './dto/replace-product.dto';
 import { MockStoreAdapter } from './mock-store.adapter';
@@ -83,6 +85,7 @@ export class BrowserSessionStoreAdaptersController {
   constructor(
     private readonly policyService: BrowserStoreAutomationPolicyService,
     private readonly sessionService: BrowserStoreSessionService,
+    private readonly cartService: VkusvillCartService,
   ) {}
 
   @Get('status')
@@ -123,5 +126,23 @@ export class BrowserSessionStoreAdaptersController {
   @ApiOkResponse({ description: 'Close a browser store session.' })
   closeSession(@Param('sessionId') sessionId: string): Promise<BrowserStoreSessionResponse> {
     return this.sessionService.closeSession(sessionId);
+  }
+
+  @Post('vkusvill/cart')
+  @ApiCreatedResponse({
+    description:
+      'Кладёт товары в корзину ВкусВилла в открытой сессии браузера и возвращает то, ' +
+      'что после этого видно в самой корзине. Заказ не оформляется и не оплачивается.',
+  })
+  addToVkusvillCart(@Body() dto: VkusvillCartDto): Promise<VkusvillCartResult> {
+    const page = this.sessionService.requirePage(dto.sessionId);
+
+    return this.cartService.addItems(page, dto.items);
+  }
+
+  @Get('vkusvill/cart/:sessionId')
+  @ApiOkResponse({ description: 'Что сейчас лежит в корзине ВкусВилла у этой сессии.' })
+  readVkusvillCart(@Param('sessionId') sessionId: string) {
+    return this.cartService.readCart(this.sessionService.requirePage(sessionId));
   }
 }

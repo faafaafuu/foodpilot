@@ -6,6 +6,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { Page } from 'playwright';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
@@ -53,6 +54,10 @@ const PROVIDERS: Record<BrowserStoreAutomationProvider, { displayName: string; l
     magnit: {
       displayName: 'Магнит',
       loginUrl: 'https://magnit.ru/',
+    },
+    vkusvill: {
+      displayName: 'ВкусВилл',
+      loginUrl: 'https://vkusvill.ru/',
     },
   };
 
@@ -119,6 +124,26 @@ export class BrowserStoreSessionService {
     }
 
     return this.toResponse(session);
+  }
+
+  /**
+   * Живая страница открытой сессии.
+   *
+   * Нужна тем, кто действует в браузере от имени человека — например, кладёт
+   * товары в корзину. Отдаётся только у открытой сессии: у закрытой страницы
+   * уже нет, и обращение к ней падало бы в глубине Playwright вместо внятного
+   * отказа здесь.
+   */
+  requirePage(sessionId: string): Page {
+    const session = this.requireSession(sessionId);
+
+    if (!session.driverSession) {
+      throw new BadRequestException(
+        `Browser session ${sessionId} is ${session.status}; start it before using the cart.`,
+      );
+    }
+
+    return session.driverSession.page;
   }
 
   async closeSession(sessionId: string): Promise<BrowserStoreSessionResponse> {

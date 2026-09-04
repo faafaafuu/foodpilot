@@ -36,7 +36,14 @@ export interface ParsedStoreSearchResponse {
   warnings: string[];
 }
 
-export type BrowserStoreAutomationProvider = 'yandex-eda' | 'yandex-go' | 'pyaterochka' | 'magnit';
+export type BrowserStoreAutomationProvider =
+  | 'yandex-eda'
+  | 'yandex-go'
+  | 'pyaterochka'
+  | 'magnit'
+  // Единственный магазин, у которого разобран поиск: только для него
+  // автоматизация складывания в корзину имеет на что опереться.
+  | 'vkusvill';
 
 export type BrowserStoreAutomationMode =
   | 'USER_OWNED_BROWSER_SESSION'
