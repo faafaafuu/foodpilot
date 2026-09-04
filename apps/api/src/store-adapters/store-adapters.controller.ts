@@ -6,6 +6,15 @@ import { BrowserStoreSessionService } from './browser-store-session.service';
 import { CreateBrowserAutomationPlanDto } from './dto/create-browser-automation-plan.dto';
 import { StartBrowserStoreSessionDto } from './dto/start-browser-store-session.dto';
 import { VkusvillCartDto } from './dto/vkusvill-cart.dto';
+import {
+  VkusvillCheckoutConfirmDto,
+  VkusvillCheckoutPlanDto,
+} from './dto/vkusvill-checkout.dto';
+import {
+  CheckoutConfirmation,
+  CheckoutPlan,
+  VkusvillCheckoutService,
+} from './vkusvill-checkout.service';
 import { VkusvillCartResult, VkusvillCartService } from './vkusvill-cart.service';
 import { PageStoreAdapter } from './page-store.adapter';
 import { ReplaceProductDto } from './dto/replace-product.dto';
@@ -86,6 +95,7 @@ export class BrowserSessionStoreAdaptersController {
     private readonly policyService: BrowserStoreAutomationPolicyService,
     private readonly sessionService: BrowserStoreSessionService,
     private readonly cartService: VkusvillCartService,
+    private readonly checkoutService: VkusvillCheckoutService,
   ) {}
 
   @Get('status')
@@ -144,5 +154,28 @@ export class BrowserSessionStoreAdaptersController {
   @ApiOkResponse({ description: 'Что сейчас лежит в корзине ВкусВилла у этой сессии.' })
   readVkusvillCart(@Param('sessionId') sessionId: string) {
     return this.cartService.readCart(this.sessionService.requirePage(sessionId));
+  }
+
+  @Post('vkusvill/checkout/plan')
+  @ApiCreatedResponse({
+    description:
+      'Доходит до последнего шага оформления и останавливается, не оформляя заказ. ' +
+      'Показывает найденные кнопки, способы оплаты и сумму. Ничего не покупает.',
+  })
+  planVkusvillCheckout(@Body() dto: VkusvillCheckoutPlanDto): Promise<CheckoutPlan> {
+    return this.checkoutService.plan(this.sessionService.requirePage(dto.sessionId));
+  }
+
+  @Post('vkusvill/checkout/confirm')
+  @ApiCreatedResponse({
+    description:
+      'Оформляет заказ и платит сохранённым в магазине способом. Необратимо. ' +
+      'Оформляет только если сумма на странице совпала с одобренной.',
+  })
+  confirmVkusvillCheckout(@Body() dto: VkusvillCheckoutConfirmDto): Promise<CheckoutConfirmation> {
+    return this.checkoutService.confirm(
+      this.sessionService.requirePage(dto.sessionId),
+      dto.expectedTotalRub,
+    );
   }
 }

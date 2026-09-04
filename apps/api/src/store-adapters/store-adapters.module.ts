@@ -6,6 +6,7 @@ import { PlaywrightBrowserStoreDriver } from './browser-store-driver';
 import { MockStoreAdapter } from './mock-store.adapter';
 import { PageStoreAdapter } from './page-store.adapter';
 import { VkusvillCartService } from './vkusvill-cart.service';
+import { VkusvillCheckoutService } from './vkusvill-checkout.service';
 import {
   BrowserSessionStoreAdaptersController,
   PageStoreAdaptersController,
@@ -23,6 +24,7 @@ import {
     MockStoreAdapter,
     PageStoreAdapter,
     VkusvillCartService,
+    VkusvillCheckoutService,
     BrowserStoreAutomationPolicyService,
     BrowserStoreSessionService,
     PlaywrightBrowserStoreDriver,
