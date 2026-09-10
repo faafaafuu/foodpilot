@@ -6,6 +6,8 @@ import { BrowserStoreSessionService } from './browser-store-session.service';
 import { CreateBrowserAutomationPlanDto } from './dto/create-browser-automation-plan.dto';
 import { StartBrowserStoreSessionDto } from './dto/start-browser-store-session.dto';
 import { VkusvillCartDto } from './dto/vkusvill-cart.dto';
+import { VkusvillCartLinkDto } from './dto/vkusvill-cart-link.dto';
+import { VkusvillMcpClient } from './vkusvill-mcp.client';
 import {
   VkusvillCheckoutConfirmDto,
   VkusvillCheckoutPlanDto,
@@ -82,7 +84,23 @@ export class PageStoreAdaptersController {
   constructor(
     private readonly pageStoreAdapter: PageStoreAdapter,
     private readonly storeSearchService: StoreSearchService,
+    private readonly vkusvillMcp: VkusvillMcpClient,
   ) {}
+
+  @Post('vkusvill/cart-link')
+  @ApiCreatedResponse({
+    description:
+      'Собирает корзину ВкусВилла через его MCP и отдаёт ссылку, по которой она ' +
+      'открывается уже набранной. Вход, доставка и оплата — на сайте, у человека. ' +
+      'Ничего не покупает.',
+  })
+  async createVkusvillCartLink(@Body() dto: VkusvillCartLinkDto): Promise<{ link: string }> {
+    const link = await this.vkusvillMcp.cartLink(
+      dto.items.map((item) => ({ xmlId: item.xmlId, quantity: item.quantity ?? 1 })),
+    );
+
+    return { link };
+  }
 
   @Get('search')
   @ApiQuery({ name: 'query', required: true, type: String })

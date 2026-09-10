@@ -10,6 +10,7 @@ import { PageStoreAdapter } from './page-store.adapter';
 import { StoreSearchService } from './store-search.service';
 import { VkusvillCartService } from './vkusvill-cart.service';
 import { VkusvillCheckoutService } from './vkusvill-checkout.service';
+import { VkusvillMcpClient } from './vkusvill-mcp.client';
 import {
   BrowserSessionStoreAdaptersController,
   PageStoreAdaptersController,
@@ -29,6 +30,7 @@ import {
     MagnitAdapter,
     MetroAdapter,
     StoreSearchService,
+    VkusvillMcpClient,
     VkusvillCartService,
     VkusvillCheckoutService,
     BrowserStoreAutomationPolicyService,

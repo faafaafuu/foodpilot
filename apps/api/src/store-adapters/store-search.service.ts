@@ -3,6 +3,7 @@ import { MagnitAdapter } from './magnit.adapter';
 import { MetroAdapter } from './metro.adapter';
 import { PageStoreAdapter } from './page-store.adapter';
 import { ParsedStoreSearchResponse } from './store-adapter.types';
+import { VkusvillMcpClient } from './vkusvill-mcp.client';
 
 /**
  * Сколько не тревожим магазин после отказа.
@@ -53,6 +54,7 @@ export class StoreSearchService {
 
   constructor(
     private readonly vkusvillAdapter: PageStoreAdapter,
+    private readonly vkusvillMcp: VkusvillMcpClient,
     private readonly magnitAdapter: MagnitAdapter,
     private readonly metroAdapter: MetroAdapter,
   ) {}
@@ -64,7 +66,7 @@ export class StoreSearchService {
     }
 
     const searches: [string, () => Promise<ParsedStoreSearchResponse>][] = [
-      ['vkusvill', () => this.vkusvillAdapter.searchVkusvill(cleanQuery)],
+      ['vkusvill', () => this.searchVkusvill(cleanQuery)],
       ['magnit', () => this.magnitAdapter.search(cleanQuery)],
       ['metro', () => this.metroAdapter.search(cleanQuery)],
     ];
@@ -74,6 +76,25 @@ export class StoreSearchService {
     );
 
     return { query: cleanQuery, stores };
+  }
+
+  /**
+   * ВкусВилл: сначала через его MCP, страница — запасной путь.
+   *
+   * MCP отдаёт готовые поля и `xml_id`, из которого собирается ссылка на
+   * корзину, а страница — только разметку. Но страница была первой и
+   * проверена, и если MCP однажды закроют или поменяют, поиск не должен
+   * пропасть вместе с ним.
+   */
+  private async searchVkusvill(query: string): Promise<ParsedStoreSearchResponse> {
+    try {
+      return await this.vkusvillMcp.search(query);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`MCP ВкусВилла не ответил на «${query}», пробую страницу: ${reason}`);
+
+      return this.vkusvillAdapter.searchVkusvill(query);
+    }
   }
 
   /**
