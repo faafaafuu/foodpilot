@@ -2,11 +2,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 import { BrowserStoreAutomationProvider } from '../store-adapter.types';
 
+// ВкусВилл — единственный магазин, для которого разобраны корзина и
+// оформление; без него в списке сессию для них было не открыть вовсе, и весь
+// путь «положить в корзину и оплатить» обрывался на первом же запросе.
 const BROWSER_SESSION_PROVIDERS: BrowserStoreAutomationProvider[] = [
   'yandex-eda',
   'yandex-go',
   'pyaterochka',
   'magnit',
+  'vkusvill',
 ];
 
 export class StartBrowserStoreSessionDto {
