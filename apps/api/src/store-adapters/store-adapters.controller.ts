@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { BrowserStoreAutomationPolicyService } from './browser-store-automation-policy.service';
@@ -109,8 +109,12 @@ export class PageStoreAdaptersController {
       'Ищет товар во всех разобранных магазинах разом и отдаёт их полки порознь, ' +
       'вместе с признаком, до какого магазина запрос дошёл.',
   })
-  search(@Query('query') query = ''): Promise<MultiStoreSearchResponse> {
-    return this.storeSearchService.searchEverywhere(query);
+  search(
+    @Query('query') query = '',
+    // Ключ parse.bot человека — с ним в поиск входит Пятёрочка.
+    @Headers('x-parse-key') parseKey = '',
+  ): Promise<MultiStoreSearchResponse> {
+    return this.storeSearchService.searchEverywhere(query, parseKey);
   }
 
   @Get('vkusvill/search')

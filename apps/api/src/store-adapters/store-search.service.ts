@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { MagnitAdapter } from './magnit.adapter';
 import { MetroAdapter } from './metro.adapter';
 import { PageStoreAdapter } from './page-store.adapter';
+import { PyaterochkaAdapter } from './pyaterochka.adapter';
 import { ParsedStoreSearchResponse } from './store-adapter.types';
 import { VkusvillMcpClient } from './vkusvill-mcp.client';
 
@@ -57,9 +58,15 @@ export class StoreSearchService {
     private readonly vkusvillMcp: VkusvillMcpClient,
     private readonly magnitAdapter: MagnitAdapter,
     private readonly metroAdapter: MetroAdapter,
+    private readonly pyaterochkaAdapter: PyaterochkaAdapter,
   ) {}
 
-  async searchEverywhere(query: string): Promise<MultiStoreSearchResponse> {
+  /**
+   * `parseKey` — ключ parse.bot, если человек его завёл: только с ним в поиск
+   * входит Пятёрочка. Без ключа её не опрашиваем вовсе, а не опрашиваем и
+   * падаем: отсутствие ключа — не поломка магазина.
+   */
+  async searchEverywhere(query: string, parseKey = ''): Promise<MultiStoreSearchResponse> {
     const cleanQuery = query.trim();
     if (!cleanQuery) {
       throw new BadRequestException('query is required for store search.');
@@ -70,6 +77,9 @@ export class StoreSearchService {
       ['magnit', () => this.magnitAdapter.search(cleanQuery)],
       ['metro', () => this.metroAdapter.search(cleanQuery)],
     ];
+    if (parseKey.trim()) {
+      searches.push(['pyaterochka', () => this.pyaterochkaAdapter.search(cleanQuery, parseKey)]);
+    }
 
     const stores = await Promise.all(
       searches.map(([provider, run]) => this.attempt(provider, cleanQuery, run)),

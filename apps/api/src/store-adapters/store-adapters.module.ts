@@ -7,6 +7,7 @@ import { MagnitAdapter } from './magnit.adapter';
 import { MetroAdapter } from './metro.adapter';
 import { MockStoreAdapter } from './mock-store.adapter';
 import { PageStoreAdapter } from './page-store.adapter';
+import { PyaterochkaAdapter } from './pyaterochka.adapter';
 import { StoreSearchService } from './store-search.service';
 import { VkusvillCartService } from './vkusvill-cart.service';
 import { VkusvillCheckoutService } from './vkusvill-checkout.service';
@@ -29,6 +30,7 @@ import {
     PageStoreAdapter,
     MagnitAdapter,
     MetroAdapter,
+    PyaterochkaAdapter,
     StoreSearchService,
     VkusvillMcpClient,
     VkusvillCartService,
